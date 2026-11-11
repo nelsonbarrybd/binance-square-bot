@@ -2,19 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 =========================================================================================
-BINANCE SQUARE WRITE-TO-EARN AUTO-BOT (GITHUB ACTIONS 24/7 CLOUD + HUMAN TRADER EDITION)
+BINANCE SQUARE WRITE-TO-EARN AUTO-BOT (HUMAN VOICE + MANDATORY EMOJIS & CHART EDITION)
 =========================================================================================
-Cloud-Ready Highlights:
-1. Uses Binance Official Global Market Data Endpoint (`https://data-api.binance.vision`)
-   with fallback to `https://api.binance.com`, ensuring zero US IP geo-blocking on
-   GitHub Actions `ubuntu-latest` runners.
-2. Deterministic 25-Minute Format Rotation (`int(time.time() // 1500) % 5`) when run via
-   `--once` in GitHub Actions cron, rotating cleanly across:
-   - CHART_IMAGE_POST (TradingView-style 1H Candlestick + Shaded S/R Zones)
-   - QUICK_ALERT (Fast Text-Only Market Flash)
-   - TRADER_POLL (High-Engagement Community Debate)
-   - LONG_ARTICLE (Deep-Dive Note + Bloomberg-style 16:9 Editorial Data Banner)
-3. Zero Markdown Stars (**), Zero "AI" Mentions, and 100% SEO-Friendly Image Filenames.
+Key Upgrades:
+1. Guaranteed Trader Emojis: Enforces rich emoji bullet points (📍, 🛡️, 🚧, 📈, 🟢, 🔴, 💬, 👇)
+   on every single post, even when generated via Cloudflare LLM.
+2. Robust Image Path Resolution: Resolves `square-post` directory automatically across
+   local PC, Linux, and GitHub Actions runners so `post-image.mjs` is guaranteed to fire.
+3. Natural Human Trader Phrasing: Clean blank lines, conversational tone, zero raw stars (**),
+   and TradingView-style 1H candlestick charts.
 =========================================================================================
 """
 
@@ -42,7 +38,6 @@ import numpy as np
 
 plt.rcParams["text.parse_math"] = False
 
-# Official global market-data endpoint (works on US GitHub Actions runners without HTTP 451)
 BINANCE_SPOT_ENDPOINTS = [
     "https://data-api.binance.vision",
     "https://api.binance.com",
@@ -136,8 +131,16 @@ def sanitize_human_post_text(raw_text: str) -> str:
         text = re.sub(rf"^{re.escape(label)}\s*:?\s*", "", text, flags=re.IGNORECASE)
         text = re.sub(rf"\b{re.escape(label)}\s*:?\s*", "", text, flags=re.IGNORECASE)
 
-    text = re.sub(r"\*\*Bull(?:ish)?\s+(?:Trade\s+)?(?:Plan|Setup):?\*\*", "🟢 Bull Idea:", text, flags=re.IGNORECASE)
-    text = re.sub(r"\*\*Bear(?:ish)?\s+(?:Trade\s+)?(?:Plan|Setup):?\*\*", "🔴 Bear Idea:", text, flags=re.IGNORECASE)
+    # Convert plain headers into clean emoji headers
+    text = re.sub(r"(?:\*\*Bull(?:ish)?\s+(?:Trade\s+)?(?:Plan|Setup):?\*\*|Bull(?:ish)?\s+(?:Trade\s+)?(?:Plan|Setup):?)", "🟢 Bull Idea:", text, flags=re.IGNORECASE)
+    text = re.sub(r"(?:\*\*Bear(?:ish)?\s+(?:Trade\s+)?(?:Plan|Setup):?\*\*|Bear(?:ish)?\s+(?:Trade\s+)?(?:Plan|Setup):?)", "🔴 Bear Idea:", text, flags=re.IGNORECASE)
+
+    # Convert price lines into clean emoji bullets if missing
+    text = re.sub(r"(?m)^Price:\s*", "📍 Price: ", text)
+    text = re.sub(r"(?m)^Support(?:\s+to\s+hold)?:\s*", "🛡️ Support: ", text)
+    text = re.sub(r"(?m)^Resistance(?:\s+to\s+break)?:\s*", "🚧 Resistance: ", text)
+    text = re.sub(r"(?m)^1H\s+EMA-20:\s*", "📈 1H EMA-20: ", text)
+
     text = text.replace("**", "").replace("__", "").replace("```", "")
     text = re.sub(r"(?m)^#{1,4}\s*", "", text)
     text = re.sub(r"\bAI\s+News\s+Sentiment\b", "Market Mood", text, flags=re.IGNORECASE)
@@ -205,7 +208,8 @@ def generate_text_cloudflare(prompt: str) -> Optional[str]:
                         "You are an experienced human crypto trader sharing your personal chart notes on Binance Square. "
                         "Write in a relaxed, natural, first-person trader voice. "
                         "Keep sentences short and super easy to read on a phone screen. "
-                        "STRICT RULES: NO asterisks (** or *), NO mention of AI/bots, use clean spacing and trader emojis."
+                        "MANDATORY: Use clean trader emojis (📍, 🛡️, 🚧, 📈, 🟢, 🔴, 💬, 👇) on each bullet line! "
+                        "STRICT RULES: NO asterisks (** or *), NO mention of AI/bots."
                     ),
                 },
                 {"role": "user", "content": prompt},
@@ -240,7 +244,6 @@ def http_get_json(url: str, timeout: int = 12) -> Optional[object]:
 
 
 def fetch_binance_spot_json(path: str) -> Optional[object]:
-    """Try `data-api.binance.vision` first (for US/GitHub runners), then `api.binance.com`."""
     for base in BINANCE_SPOT_ENDPOINTS:
         res = http_get_json(f"{base}{path}")
         if res is not None:
@@ -334,7 +337,7 @@ def scan_trending_market_candidate() -> Dict[str, object]:
             ticker_info = random.choice(candidates[:6])
             selected_symbol = ticker_info["symbol"]
 
-    raw_klines = fetch_binance_spot_json(f"/api/v3/klines?symbol={selected_symbol}&interval=1h&limit=48")
+    raw_klines = fetch_binance_spot_json(f"/api/v3/klines?symbol={selected_symbol}&interval=1h&limit=48" )
 
     if isinstance(raw_klines, list) and len(raw_klines) >= 30:
         timestamps = [int(k[0]) for k in raw_klines]
@@ -706,10 +709,10 @@ def generate_multi_format_content(
             f"Right now, {primary_tag} is trading around {price_str} ({chg:+.2f}% over the last 24 hours) with ${float(market_data['quote_vol_24h'])/1e6:,.1f}M in spot turnover. "
             f"Meanwhile, traders are also reacting to today's macro headline: \"{headline}\".\n\n"
             f"📊 Key Levels on My 1H Chart:\n"
-            f"• Current Price: {price_str}\n"
-            f"• Demand Zone (Support): {sup_str}\n"
-            f"• Supply Wall (Resistance): {res_str}\n"
-            f"• Trend Filter: 1H EMA-20 at {ema20_str} | RSI(14) at {rsi_val:.1f}\n\n"
+            f"📍 Current Price: {price_str}\n"
+            f"🛡️ Demand Zone (Support): {sup_str}\n"
+            f"🚧 Supply Wall (Resistance): {res_str}\n"
+            f"📈 Trend Filter: 1H EMA-20 at {ema20_str} | ⚡ RSI(14) at {rsi_val:.1f}\n\n"
             f"🟢 How I'm Playing the Upside:\n"
             f"I don't like chasing middle-of-the-range candles. My ideal long entry is either a clean retest and bounce off {sup_str}, or a confirmed 1H close above {res_str} with volume, keeping invalidation tight below {stop_bull_str}.\n\n"
             f"🔴 What Flips Me Bearish:\n"
@@ -719,16 +722,17 @@ def generate_multi_format_content(
         )
         return sanitize_human_post_text(text), title
 
+    # Format 4: CHART_IMAGE_POST
     llm_prompt = f"""Share a short, conversational 1H chart update on {primary_tag} at {price_str} ({chg:+.2f}% 24h) during the {session_info['name']}.
 Write like a real human trader talking to friends on Binance Square:
 - Hook: Why you are looking at {primary_tag} right now.
-- Clean emoji list of your levels:
+- Clean emoji bullet list of your levels:
   📍 Price: {price_str}
-  🛡️ Support to hold: {sup_str}
-  🚧 Resistance to break: {res_str}
+  🛡️ Support: {sup_str}
+  🚧 Resistance: {res_str}
   📈 1H EMA-20: {ema20_str} | ⚡ RSI: {rsi_val:.1f}
-- 🟢 Bullish idea (bounce at {sup_str} or breakout above {res_str}, stop below {stop_bull_str}).
-- 🔴 Bearish risk (rejection at {res_str}).
+- 🟢 Bull Idea (bounce at {sup_str} or breakout above {res_str}, stop below {stop_bull_str}).
+- 🔴 Bear Idea (rejection at {res_str}).
 - Friendly closing question asking if readers are Long or Short on {primary_tag} today.
 - End with {cashtag_str} #Write2Earn #CryptoTrading #BinanceSquare.
 Remember: NO asterisks (**), NO mention of AI, keep lines short and easy to read."""
@@ -764,6 +768,30 @@ def get_current_global_session(utc_now: Optional[datetime.datetime] = None) -> D
     return {"key": "ASIA_PEAK", **GLOBAL_SESSIONS["ASIA_PEAK"]}
 
 
+def find_square_skill_scripts_dir(custom_path: Optional[str] = None) -> Optional[Path]:
+    """Look for square-post scripts directory across relative and absolute locations."""
+    candidates = []
+    if custom_path:
+        candidates.append(Path(custom_path))
+        candidates.append(Path(custom_path) / "scripts")
+
+    candidates.extend([
+        Path("square-post"),
+        Path("square-post/scripts"),
+        Path("./square-post/scripts"),
+        Path.home() / ".config/binance-square",
+        Path.cwd() / "square-post",
+        Path.cwd() / "square-post/scripts",
+    ])
+
+    for c in candidates:
+        if (c / "post-image.mjs").exists():
+            return c
+        if (c / "scripts/post-image.mjs").exists():
+            return c / "scripts"
+    return None
+
+
 def publish_to_binance_square(
     post_text: str,
     image_paths: List[str],
@@ -788,31 +816,40 @@ def publish_to_binance_square(
     if not api_key:
         raise RuntimeError("Missing BINANCE_SQUARE_OPENAPI_KEY! Set $env:BINANCE_SQUARE_OPENAPI_KEY='your_key'.")
 
-    if square_skill_dir:
-        scripts_dir = Path(square_skill_dir) / "scripts"
+    # Route A: Official square-post Node.js scripts for Image and Article uploads
+    scripts_dir = find_square_skill_scripts_dir(square_skill_dir)
+    if scripts_dir:
         env = {**os.environ, "BINANCE_SQUARE_OPENAPI_KEY": api_key}
+        resolved_images = [str(Path(p).resolve()) for p in image_paths]
 
-        if article_title and image_paths:
+        # Case 1: Long Article with Title and Cover Banner
+        if article_title and resolved_images:
             script_file = scripts_dir / "post-image.mjs"
-            cmd = ["node", str(script_file), "--text", post_text, "--title", article_title, "--cover", image_paths[0]]
-            proc = subprocess.run(cmd, cwd=square_skill_dir, env=env, capture_output=True, text=True, timeout=60)
+            cmd = ["node", str(script_file), "--text", post_text, "--title", article_title, "--cover", resolved_images[0]]
+            proc = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=60)
             if proc.returncode == 0:
-                return {"status": "PUBLISHED_ARTICLE_WITH_COVER", "stdout": proc.stdout.strip(), "images": image_paths}
+                return {"status": "PUBLISHED_ARTICLE_WITH_COVER", "stdout": proc.stdout.strip(), "images": resolved_images}
+            print(f"[WARN] post-image.mjs article non-zero ({proc.stderr}), falling back.")
 
-        elif image_paths:
+        # Case 2: Chart Image Post
+        elif resolved_images:
             script_file = scripts_dir / "post-image.mjs"
-            cmd = ["node", str(script_file), "--text", post_text, "--images", ",".join(image_paths)]
-            proc = subprocess.run(cmd, cwd=square_skill_dir, env=env, capture_output=True, text=True, timeout=60)
+            cmd = ["node", str(script_file), "--text", post_text, "--images", ",".join(resolved_images)]
+            proc = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=60)
             if proc.returncode == 0:
-                return {"status": "PUBLISHED_CHART_POST", "stdout": proc.stdout.strip(), "images": image_paths}
+                return {"status": "PUBLISHED_CHART_POST", "stdout": proc.stdout.strip(), "images": resolved_images}
+            print(f"[WARN] post-image.mjs chart non-zero ({proc.stderr}), falling back.")
 
+        # Case 3: Pure Text Post (Quick Alert or Poll)
         else:
             script_file = scripts_dir / "post-text.mjs"
             cmd = ["node", str(script_file), "--text", post_text]
-            proc = subprocess.run(cmd, cwd=square_skill_dir, env=env, capture_output=True, text=True, timeout=40)
+            proc = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=40)
             if proc.returncode == 0:
                 return {"status": "PUBLISHED_TEXT_ONLY", "stdout": proc.stdout.strip(), "images": []}
+            print(f"[WARN] post-text.mjs non-zero ({proc.stderr}), falling back.")
 
+    # Route B: Direct OpenAPI fallback (Posts text directly to Binance Square)
     payload = json.dumps({"bodyTextOnly": post_text}).encode("utf-8")
     req = urllib.request.Request(
         BINANCE_SQUARE_OPENAPI_URL,
@@ -827,7 +864,7 @@ def publish_to_binance_square(
     if code == "000000":
         content_id = (result.get("data") or {}).get("id", "unavailable")
         return {
-            "status": "PUBLISHED_OPENAPI",
+            "status": "PUBLISHED_OPENAPI_TEXT",
             "post_url": f"https://www.binance.com/square/post/{content_id}",
             "response": result,
             "images": image_paths,
@@ -884,9 +921,9 @@ def run_single_cycle(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Binance Square Write-to-Earn Auto-Bot (GitHub Actions 24/7 Cloud Edition)"
+        description="Binance Square Write-to-Earn Auto-Bot (100% Human Trader Edition)"
     )
-    parser.add_argument("--once", action="store_true", help="Run a single post cycle (used by GitHub Actions cron).")
+    parser.add_argument("--once", action="store_true", help="Run a single post cycle.")
     parser.add_argument("--dry-run", action="store_true", help="Preview locally without publishing.")
     parser.add_argument(
         "--format",
@@ -898,7 +935,6 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.once:
-        # Deterministic 25-min slot index so stateless GitHub Actions runs rotate formats in sequence
         slot_index = int(time.time() // 1500)
         summary = run_single_cycle(
             output_dir=args.output_dir,
