@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       force_format:
-        description: 'Optional: Force a specific post format (leave empty for auto-rotation)'
+        description: 'Optional: Force a specific post format (CHART_IMAGE_POST, QUICK_ALERT, LONG_ARTICLE, TRADER_POLL)'
         required: false
         default: ''
 
@@ -45,17 +45,18 @@ jobs:
           unzip -q hub.zip
           cp -r binance-skills-hub-main/skills/binance/square-post/* square-post/
           rm -rf hub.zip binance-skills-hub-main
+          ls -la square-post/scripts
 
       - name: Generate & Publish Human-Style Post to Binance Square
         env:
           BINANCE_SQUARE_OPENAPI_KEY: ${{ secrets.BINANCE_SQUARE_OPENAPI_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SQUARE_SKILL_DIR: ./square-post
+          SQUARE_SKILL_DIR: square-post
           FORCE_FORMAT: ${{ github.event.inputs.force_format }}
         run: |
           if [ -n "$FORCE_FORMAT" ]; then
-            python binance_square_autobot.py --once --format "$FORCE_FORMAT"
+            python binance_square_autobot.py --once --square-skill-dir square-post --format "$FORCE_FORMAT"
           else
-            python binance_square_autobot.py --once
+            python binance_square_autobot.py --once --square-skill-dir square-post
           fi
