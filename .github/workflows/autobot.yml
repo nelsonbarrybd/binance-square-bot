@@ -1,0 +1,62 @@
+name: Binance Square 24/7 Free Write-to-Earn Bot
+
+on:
+  schedule:
+    # Runs automatically every 25 minutes, 24/7 (~50 posts/day across all global trading sessions)
+    - cron: '*/25 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_format:
+        description: 'Optional: Force a specific post format (leave empty for auto-rotation)'
+        required: false
+        default: ''
+
+concurrency:
+  group: binance-square-autobot
+  cancel-in-progress: false
+
+jobs:
+  publish-square-post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python Chart Libraries
+        run: |
+          python -m pip install --upgrade pip
+          pip install matplotlib numpy
+
+      - name: Download Official Binance Square Skill Scripts
+        run: |
+          mkdir -p square-post
+          curl -sL https://github.com/binance/binance-skills-hub/archive/refs/heads/main.zip -o hub.zip
+          unzip -q hub.zip
+          cp -r binance-skills-hub-main/skills/binance/square-post/* square-post/
+          rm -rf hub.zip binance-skills-hub-main
+
+      - name: Generate & Publish Human-Style Post to Binance Square
+        env:
+          BINANCE_SQUARE_OPENAPI_KEY: ${{ secrets.BINANCE_SQUARE_OPENAPI_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SQUARE_SKILL_DIR: ./square-post
+          FORCE_FORMAT: ${{ github.event.inputs.force_format }}
+        run: |
+          if [ -n "$FORCE_FORMAT" ]; then
+            python binance_square_autobot.py --once --format "$FORCE_FORMAT"
+          else
+            python binance_square_autobot.py --once
+          fi
