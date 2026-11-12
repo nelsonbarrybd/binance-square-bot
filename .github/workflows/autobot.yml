@@ -56,12 +56,15 @@ jobs:
       - name: Download Official Binance Square Skill Scripts
         run: |
           mkdir -p square-post
-          curl -sL [https://github.com/binance/binance-skills-hub/archive/refs/heads/main.zip](https://github.com/binance/binance-skills-hub/archive/refs/heads/main.zip) -o hub.zip
+          GH_HOST="https://github.com"
+          REPO_PATH="binance/binance-skills-hub/archive/refs/heads/main.zip"
+          curl -sL "${GH_HOST}/${REPO_PATH}" -o hub.zip
           unzip -q hub.zip
           cp -r binance-skills-hub-main/skills/binance/square-post/* square-post/
           rm -rf hub.zip binance-skills-hub-main
+          ls -la square-post/scripts
 
-      - name: Generate & Publish Viral Human Post (Binance Square + Telegram)
+      - name: Generate & Publish Viral Human Post
         env:
           BINANCE_SQUARE_OPENAPI_KEY: ${{ secrets.BINANCE_SQUARE_OPENAPI_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
