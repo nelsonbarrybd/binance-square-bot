@@ -245,11 +245,9 @@ def sanitize_human_post_text(raw_text: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # Remove meta references to "the red arrow" or "the green arrow"
     text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\s+points\s+toward\b", "Momentum points toward", text)
     text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\b", "the 1H structure", text)
 
-    # Remove AI-sounding filler phrases
     text = re.sub(
         r",\s*the\s+(?:token|coin|asset)\s+that's\s+been\s+making\s+waves[^.!?\n]*[.!?]\s*",
         " — ",
@@ -258,14 +256,13 @@ def sanitize_human_post_text(raw_text: str) -> str:
     )
     text = re.sub(r"\b(?:Furthermore|Moreover|In conclusion|To summarize),?\s*", "", text, flags=re.IGNORECASE)
 
-    # Fix space before punctuation after cashtags
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s+([,.:;!?])", r"\1\2", text)
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s*/\s*USDT", r"\1", text)
 
     text = text.replace("**", "").replace("__", "").replace("```", "").replace('"', "")
     text = re.sub(r"(?m)^#{1,4}\s*", "", text)
 
-   text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
+    text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
     text = re.sub(r"\bPrice\s+support\b", "price support", text)
     text = re.sub(r"\babove\s+Price\b", "above price", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
