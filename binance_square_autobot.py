@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.4 (PURE TRADER LOGIC EDITION)
+BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.5 (FINAL COMPLETE EDITION)
 File Name: binance_square_autobot.py
 """
 
@@ -258,6 +258,7 @@ def sanitize_human_post_text(raw_text: str) -> str:
 
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s+([,.:;!?])", r"\1\2", text)
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s*/\s*USDT", r"\1", text)
+    text = re.sub(r"(\$[A-Z0-9]{2,10})\s+'s\b", r"\1's", text)
 
     text = text.replace("**", "").replace("__", "").replace("```", "").replace('"', "")
     text = re.sub(r"(?m)^#{1,4}\s*", "", text)
@@ -265,6 +266,8 @@ def sanitize_human_post_text(raw_text: str) -> str:
     text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
     text = re.sub(r"\bPrice\s+support\b", "price support", text)
     text = re.sub(r"\babove\s+Price\b", "above price", text)
+    text = re.sub(r"\bBEARISH\b", "bearish", text)
+    text = re.sub(r"\bBULLISH\b", "bullish", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
@@ -495,7 +498,9 @@ def format_price(value: float) -> str:
         return f"${value:.3f}"
     if value >= 0.01:
         return f"${value:.4f}"
-    return f"${value:.6f}"
+    if value >= 0.0001:
+        return f"${value:.6f}"
+    return f"${value:.8f}"
 
 
 def generate_mobile_arrow_chart(
@@ -541,7 +546,7 @@ def generate_mobile_arrow_chart(
 
     fig.text(0.06, 0.93, f"{market_data['base_coin']}USDT", color=text_primary, fontsize=22, fontweight="bold")
     fig.text(0.34, 0.935, "Perp", color="#F0B90B", fontsize=12, fontweight="bold")
-    fig.text(0.06, 0.86, format_price(last_p).replace("$", ""), color=price_col, fontsize=28, fontweight="bold")
+    fig.text(0.06, 0.86, format_price(last_p).replace("$", ""), color=price_col, fontsize=26, fontweight="bold")
     fig.text(
         0.06, 0.815,
         f"≈ {format_price(last_p)}   {chg_sign}{chg:.2f}%",
@@ -798,7 +803,7 @@ def generate_volatility_shock_card(
         )
         ax.add_patch(box)
         ax.text(xs[i] + 0.03, ys[i] + 0.11, lbl, color=text_muted, fontsize=10.5, fontweight="bold")
-        ax.text(xs[i] + 0.03, ys[i] + 0.035, val, color=col, fontsize=18, fontweight="bold")
+        ax.text(xs[i] + 0.03, ys[i] + 0.035, val, color=col, fontsize=17, fontweight="bold")
 
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
@@ -903,9 +908,9 @@ def build_human_post_by_persona(
     tag_line = f"{cashtag_footer} #{base_coin} #Write2Earn #BinanceSquare"
 
     setup_thesis = (
-        f"BULLISH bounce setup targeting {target_str} resistance (as long as {sup_str} demand holds)"
+        f"bullish bounce setup targeting {target_str} resistance (as long as {sup_str} demand holds)"
         if bias == "BULLISH"
-        else f"BEARISH rejection setup targeting a drop toward the {target_str} demand floor (capped below {ema20_str})"
+        else f"bearish rejection setup targeting a drop toward the {target_str} demand floor (capped below {ema20_str})"
     )
 
     system_prompt = (
@@ -914,7 +919,7 @@ def build_human_post_by_persona(
         "STRICT RULES: "
         "1. NEVER start with 'Hey guys', 'Hey friends', or essay intros. "
         "2. NEVER mention 'the red arrow' or 'the green arrow' in your text—talk purely about price action! "
-        "3. Treat Support and Resistance as PRICE levels, and RSI as a momentum reading (never say 'if RSI holds as support'). "
+        "3. Treat Support and Resistance as price levels, and RSI as a momentum reading (never say 'if RSI holds as support'). "
         f"4. Your trade thesis MUST be: {setup_thesis}. "
         "5. NO Markdown asterisks (** or *). End with a 1-line question for traders. Do NOT include hashtags."
     )
@@ -1209,7 +1214,7 @@ def run_single_cycle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Binance Square V3.4 Viral Human Auto-Bot")
+    parser = argparse.ArgumentParser(description="Binance Square V3.5 Viral Human Auto-Bot")
     parser.add_argument("--once", action="store_true", help="Run a single post cycle.")
     parser.add_argument("--dry-run", action="store_true", help="Preview locally without publishing.")
     parser.add_argument(
@@ -1246,7 +1251,7 @@ def main() -> None:
         print("=" * 78)
         return
 
-    print("[START] Launching V3.4 Global Peak-Session Scheduler...")
+    print("[START] Launching V3.5 Global Peak-Session Scheduler...")
     while True:
         try:
             summary = run_single_cycle(
