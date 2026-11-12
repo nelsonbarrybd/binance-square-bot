@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.3 (100% CHART-ALIGNED & PUNCHY EDITION)
+BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.4 (PURE TRADER LOGIC EDITION)
 File Name: binance_square_autobot.py
 """
 
@@ -29,10 +29,6 @@ import numpy as np
 
 plt.rcParams["text.parse_math"] = False
 
-
-# ==============================================================================
-# 1. SAFE URL BUILDER & WRITE-TO-EARN COMMISSION FILTER
-# ==============================================================================
 
 def clean_url(raw_url: str) -> str:
     u = str(raw_url).strip()
@@ -64,7 +60,6 @@ CF_IMAGE_MODEL = os.environ.get(
     "CF_IMAGE_MODEL", "@cf/bytedance/stable-diffusion-xl-lightning"
 )
 
-# STRICT BLACKLIST: Zero-fee coins, stablecoins, wrapped tokens, fiat pairs
 ZERO_COMMISSION_BLACKLIST = {
     "USDC", "FDUSD", "USDT", "TUSD", "BUSD", "DAI", "USDP", "USDE", "PYUSD",
     "EUR", "EURI", "AEUR", "TRY", "BRL", "JPY", "GBP", "AUD", "RUB", "UAH",
@@ -138,7 +133,7 @@ HUMAN_PERSONAS = [
     {
         "id": "MEME_HYPE_MOMENTUM",
         "name": "High-Energy Momentum Rider",
-        "style": "High-energy, punchy trader vibe focusing on volume and the exact chart arrow target.",
+        "style": "High-energy, punchy trader vibe focusing on volume and the next key price target.",
     },
     {
         "id": "RISK_REWARD_ARCHITECT",
@@ -163,7 +158,7 @@ HUMAN_PERSONAS = [
     {
         "id": "BLUNT_REALIST_WARNING",
         "name": "No-Nonsense Risk Realist",
-        "style": "Calls out retail FOMO or panic directly and shares the exact chart target.",
+        "style": "Calls out retail FOMO or panic directly and shares the exact price target.",
     },
 ]
 
@@ -195,10 +190,6 @@ GLOBAL_SESSIONS = {
 }
 
 
-# ==============================================================================
-# 2. STATEFUL MEMORY (BLOCKS COIN & PERSONA REPETITION)
-# ==============================================================================
-
 def load_bot_memory(memory_file: str) -> Dict[str, List[str]]:
     path = Path(memory_file)
     if path.exists():
@@ -229,10 +220,6 @@ def save_bot_memory(
     path.write_text(json.dumps(memory, indent=2), encoding="utf-8")
 
 
-# ==============================================================================
-# 3. STRICT ANTI-BOT SANITIZER (NO "HEY GUYS", NO ESSAY FLUFF, CLEAN CASHTAGS)
-# ==============================================================================
-
 def sanitize_human_post_text(raw_text: str) -> str:
     text = raw_text.strip()
 
@@ -258,7 +245,11 @@ def sanitize_human_post_text(raw_text: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # Remove AI-sounding filler phrases like ", the token that's been making waves in the DeFi space."
+    # Remove meta references to "the red arrow" or "the green arrow"
+    text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\s+points\s+toward\b", "Momentum points toward", text)
+    text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\b", "the 1H structure", text)
+
+    # Remove AI-sounding filler phrases
     text = re.sub(
         r",\s*the\s+(?:token|coin|asset)\s+that's\s+been\s+making\s+waves[^.!?\n]*[.!?]\s*",
         " — ",
@@ -267,9 +258,8 @@ def sanitize_human_post_text(raw_text: str) -> str:
     )
     text = re.sub(r"\b(?:Furthermore|Moreover|In conclusion|To summarize),?\s*", "", text, flags=re.IGNORECASE)
 
-    # Fix space before punctuation after cashtags (e.g., "$TAO ," -> "$TAO,")
+    # Fix space before punctuation after cashtags
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s+([,.:;!?])", r"\1\2", text)
-    # Fix "$TAO /USDT" -> "$TAO"
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s*/\s*USDT", r"\1", text)
 
     text = text.replace("**", "").replace("__", "").replace("```", "").replace('"', "")
@@ -286,10 +276,6 @@ def build_seo_image_filename(base_coin: str, fmt: str, suffix: str = "chart") ->
     date_slug = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d-%H%M")
     return f"{coin_slug}-{pair_slug}-{fmt.lower().replace('_', '-')}-{suffix}-{date_slug}.png"
 
-
-# ==============================================================================
-# 4. LIVE MARKET + HOT FUTURES SCANNER (100% COMMISSION ELIGIBLE COINS ONLY)
-# ==============================================================================
 
 def http_get_json(url: str, timeout: int = 12) -> Optional[object]:
     try:
@@ -512,10 +498,6 @@ def format_price(value: float) -> str:
         return f"${value:.4f}"
     return f"${value:.6f}"
 
-
-# ==============================================================================
-# 5. VIRAL IMAGE GENERATORS (MOBILE ARROW CHART, R:R BOX CHART, SHOCK CARD)
-# ==============================================================================
 
 def generate_mobile_arrow_chart(
     market_data: Dict[str, object],
@@ -859,10 +841,6 @@ def generate_cloudflare_reaction_visual(
     return None
 
 
-# ==============================================================================
-# 6. PUNCHY, CHART-ALIGNED HUMAN COPYWRITER (ALWAYS KEEPS 3 CASHTAGS)
-# ==============================================================================
-
 def get_cloudflare_credentials() -> Tuple[str, str]:
     acc_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
     token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
@@ -882,7 +860,7 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str) -> Optional[s
                     {"role": "user", "content": user_prompt},
                 ],
                 "max_tokens": 175,
-                "temperature": 0.78,
+                "temperature": 0.75,
             }).encode("utf-8")
             req = urllib.request.Request(
                 url, data=payload,
@@ -915,7 +893,6 @@ def build_human_post_by_persona(
     res_str = format_price(float(market_data["resistance"]))
     target_str = format_price(float(market_data["target_price"]))
     high_str = format_price(float(market_data["high_24h"]))
-    low_str = format_price(float(market_data["low_24h"]))
     ema20_str = format_price(float(market_data["ema20"]))
     chg = float(market_data["change_24h"])
     rsi_val = float(market_data["rsi"])
@@ -924,46 +901,44 @@ def build_human_post_by_persona(
     bias = str(market_data["bias"])
     pid = persona["id"]
 
-    # Guaranteed footer line so all 3 clickable commission widgets ALWAYS render
     tag_line = f"{cashtag_footer} #{base_coin} #Write2Earn #BinanceSquare"
 
-    arrow_direction_desc = (
-        f"BULLISH (Green chart arrow pointing UP from {price_str} toward {target_str} target)"
+    setup_thesis = (
+        f"BULLISH bounce setup targeting {target_str} resistance (as long as {sup_str} demand holds)"
         if bias == "BULLISH"
-        else f"BEARISH (Red chart arrow pointing DOWN from {price_str} toward {target_str} target)"
+        else f"BEARISH rejection setup targeting a drop toward the {target_str} demand floor (capped below {ema20_str})"
     )
 
     system_prompt = (
         f"You are an experienced crypto trader on Binance Square ({persona['name']}). "
-        "Write a short, punchy 4-to-6 sentence trading post ( strictly 55 to 95 words MAX ). "
+        "Write a short, punchy 4-to-5 sentence trading note (strictly 50 to 85 words MAX). "
         "STRICT RULES: "
-        "1. NEVER start with 'Hey guys', 'Hey friends', or essay intros like 'the token that has been making waves'. "
-        f"2. Your thesis MUST match the chart arrow direction: {arrow_direction_desc}! "
-        "3. Start your first sentence directly with the cashtag and price action. "
-        "4. NO Markdown asterisks (** or *). End with a 1-line question for traders. Do NOT include hashtags (they will be appended automatically)."
+        "1. NEVER start with 'Hey guys', 'Hey friends', or essay intros. "
+        "2. NEVER mention 'the red arrow' or 'the green arrow' in your text—talk purely about price action! "
+        "3. Treat Support and Resistance as PRICE levels, and RSI as a momentum reading (never say 'if RSI holds as support'). "
+        f"4. Your trade thesis MUST be: {setup_thesis}. "
+        "5. NO Markdown asterisks (** or *). End with a 1-line question for traders. Do NOT include hashtags."
     )
 
     user_prompt = (
-        f"Coin: {primary_tag} at {price_str} ({chg:+.2f}% 24h, Vol ${vol_m:,.1f}M).\n"
-        f"Chart Setup Direction: {arrow_direction_desc}.\n"
-        f"Key Levels: Support {sup_str}, Resistance {res_str}, 1H EMA20 {ema20_str}, RSI {rsi_val:.1f}, Funding {funding_val:+.4f}%.\n"
+        f"Coin: {primary_tag} trading at {price_str} ({chg:+.2f}% 24h, Vol ${vol_m:,.1f}M).\n"
+        f"Trade Thesis: {setup_thesis}.\n"
+        f"Price Levels: Support {sup_str}, Resistance {res_str}, 1H EMA20 {ema20_str}. Momentum: 1H RSI at {rsi_val:.1f}, Funding {funding_val:+.4f}%.\n"
         f"Style: {persona['style']}\n"
         f"Write the short 2-paragraph trader note now (no hashtags at the end):"
     )
 
     cf_body = generate_text_cloudflare(system_prompt, user_prompt)
     if cf_body and primary_tag in cf_body:
-        # Strip any partial hashtags at the end and append our guaranteed 3-cashtag footer
         cf_body = re.sub(r"(?:\s*#[A-Za-z0-9_]+)+\s*$", "", cf_body).strip()
         return sanitize_human_post_text(f"{cf_body}\n\n{tag_line}")
 
-    # 100% Chart-Aligned Punchy Human Fallbacks
     if bias == "BEARISH":
         if pid in ("URGENT_FAKE_PUMP_CALL", "BLUNT_REALIST_WARNING"):
             body = (
                 f"{primary_tag} is showing heavy exhaustion near {price_str} ({chg:+.2f}%) — don't get trapped buying weak bounce wicks! 📉\n\n"
                 f"Sellers are defending the 1H EMA-20 ({ema20_str}) and rejecting every push toward {res_str}. "
-                f"As long as price stays capped under {ema20_str}, my chart target points straight down to sweep the {sup_str} liquidity floor.\n\n"
+                f"As long as price stays capped under {ema20_str}, downside momentum points straight toward the {sup_str} liquidity floor.\n\n"
                 f"Are you shorting {primary_tag} toward {sup_str} or waiting on the sidelines? 👇"
             )
         elif pid == "CALM_INSTITUTIONAL_RANGE":
@@ -978,7 +953,7 @@ def build_human_post_by_persona(
             body = (
                 f"Sellers remain in control on the {primary_tag} 1H tape at {price_str} ({chg:+.2f}% in 24h).\n\n"
                 f"After dropping from the {high_str} high on ${vol_m:,.1f}M volume, weak bounces are getting absorbed below {ema20_str}. "
-                f"I'm watching for a clean flush down into the {sup_str} target zone before looking for any relief bounce.\n\n"
+                f"I'm watching for a clean flush down into the {sup_str} demand zone before looking for any relief bounce.\n\n"
                 f"Riding {primary_tag} short to {sup_str} or waiting for the dip? 👇"
             )
     else:
@@ -986,7 +961,7 @@ def build_human_post_by_persona(
             body = (
                 f"{primary_tag} buyers just stepped in strong at {price_str} ({chg:+.2f}%)! 🚀\n\n"
                 f"Bears tried to break the {sup_str} floor, but spot demand absorbed the dip with ${vol_m:,.1f}M in 24h turnover. "
-                f"Holding above {ema20_str} opens a clean 1H run straight toward my {res_str} chart target.\n\n"
+                f"Holding above {ema20_str} opens a clean 1H run straight toward the {res_str} breakout target.\n\n"
                 f"Who else is longing {primary_tag} for the {res_str} breakout? Drop your target! 👇"
             )
         elif pid == "CALM_INSTITUTIONAL_RANGE":
@@ -1007,10 +982,6 @@ def build_human_post_by_persona(
 
     return sanitize_human_post_text(f"{body}\n\n{tag_line}")
 
-
-# ==============================================================================
-# 7. SESSION SCHEDULER, BINANCE SQUARE PUBLISHER & TELEGRAM SYNC
-# ==============================================================================
 
 def get_current_global_session(utc_now: Optional[datetime.datetime] = None) -> Dict[str, object]:
     if utc_now is None:
@@ -1239,7 +1210,7 @@ def run_single_cycle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Binance Square V3.3 Viral Human Auto-Bot")
+    parser = argparse.ArgumentParser(description="Binance Square V3.4 Viral Human Auto-Bot")
     parser.add_argument("--once", action="store_true", help="Run a single post cycle.")
     parser.add_argument("--dry-run", action="store_true", help="Preview locally without publishing.")
     parser.add_argument(
@@ -1276,7 +1247,7 @@ def main() -> None:
         print("=" * 78)
         return
 
-    print("[START] Launching V3.3 Global Peak-Session Scheduler...")
+    print("[START] Launching V3.4 Global Peak-Session Scheduler...")
     while True:
         try:
             summary = run_single_cycle(
