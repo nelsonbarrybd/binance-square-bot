@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3 (VIRAL HUMAN ENGINE + 100% COMMISSION FILTER)
+BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.2 (COMPLETE & CRASH-PROOF EDITION)
+File Name: binance_square_autobot.py
 """
 
 import argparse
@@ -28,19 +29,33 @@ import numpy as np
 
 plt.rcParams["text.parse_math"] = False
 
+
 # ==============================================================================
-# 1. ENDPOINTS & STRICT WRITE-TO-EARN COMMISSION FILTER
+# 1. SAFE URL BUILDER (IMMUNE TO MARKDOWN COPY-PASTE BRACKETS)
 # ==============================================================================
 
-HTTPS_PREFIX = "https://"
+def clean_url(raw_url: str) -> str:
+    """Strips any accidental Markdown link brackets [url](url) injected by clipboard."""
+    u = str(raw_url).strip()
+    m = re.search(r"\((https?://[^\s\)\]]+)\)", u)
+    if m:
+        u = m.group(1)
+    u = u.replace("[", "").replace("]", "").replace(" ", "")
+    return u
+
+
+SCHEME = "https" + "://"
 BINANCE_SPOT_ENDPOINTS = [
-    HTTPS_PREFIX + "data-api.binance.vision",
-    HTTPS_PREFIX + "api.binance.com",
+    SCHEME + ".".join(["data-api", "binance", "vision"]),
+    SCHEME + ".".join(["api", "binance", "com"]),
 ]
-BINANCE_FUTURES_BASE = HTTPS_PREFIX + "fapi.binance.com"
+BINANCE_FUTURES_BASE = SCHEME + ".".join(["fapi", "binance", "com"])
 BINANCE_SQUARE_OPENAPI_URL = (
-    HTTPS_PREFIX + "www.binance.com/bapi/composite/v1/public/pgc/openApi/content/add"
+    SCHEME + ".".join(["www", "binance", "com"]) + "/bapi/composite/v1/public/pgc/openApi/content/add"
 )
+CF_API_HOST = SCHEME + ".".join(["api", "cloudflare", "com"])
+TG_API_HOST = SCHEME + ".".join(["api", "telegram", "org"])
+SQUARE_POST_BASE_URL = SCHEME + ".".join(["www", "binance", "com"]) + "/square/post/"
 
 CF_TEXT_MODEL = os.environ.get(
     "CF_TEXT_MODEL", "@cf/meta/llama-3.1-8b-instruct-fp8"
@@ -268,10 +283,11 @@ def build_seo_image_filename(base_coin: str, fmt: str, suffix: str = "chart") ->
 # ==============================================================================
 
 def http_get_json(url: str, timeout: int = 12) -> Optional[object]:
-    req = urllib.request.Request(
-        url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    )
     try:
+        safe_u = clean_url(url)
+        req = urllib.request.Request(
+            safe_u, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except Exception:
@@ -807,19 +823,19 @@ def generate_cloudflare_reaction_visual(
     if not (acc_id and token):
         return None
 
-    url = f"{HTTPS_PREFIX}[api.cloudflare.com/client/v4/accounts/](https://api.cloudflare.com/client/v4/accounts/){acc_id}/ai/run/{CF_IMAGE_MODEL}"
-    scene = (
-        f"dramatic 3D financial illustration of a glowing golden crypto bull charging upward through green candlesticks for {base_coin}, ultra vibrant, high contrast, no text"
-        if bias == "BULLISH"
-        else f"dramatic 3D crypto market illustration of red lightning hitting a glass chart floor with a giant red arrow pointing down for {base_coin}, cinematic dark lighting, no text"
-    )
-    payload = json.dumps({"prompt": scene, "num_steps": 4}).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=payload,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        method="POST",
-    )
     try:
+        url = clean_url(f"{CF_API_HOST}/client/v4/accounts/{acc_id}/ai/run/{CF_IMAGE_MODEL}")
+        scene = (
+            f"dramatic 3D financial illustration of a glowing golden crypto bull charging upward through green candlesticks for {base_coin}, ultra vibrant, high contrast, no text"
+            if bias == "BULLISH"
+            else f"dramatic 3D crypto market illustration of red lightning hitting a glass chart floor with a giant red arrow pointing down for {base_coin}, cinematic dark lighting, no text"
+        )
+        payload = json.dumps({"prompt": scene, "num_steps": 4}).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=payload,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            method="POST",
+        )
         with urllib.request.urlopen(req, timeout=25) as resp:
             img_bytes = resp.read()
             if len(img_bytes) > 1000:
@@ -847,21 +863,21 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str) -> Optional[s
     if not (acc_id and token):
         return None
     for model_name in (CF_TEXT_MODEL, CF_TEXT_FALLBACK_MODEL):
-        url = f"{HTTPS_PREFIX}[api.cloudflare.com/client/v4/accounts/](https://api.cloudflare.com/client/v4/accounts/){acc_id}/ai/run/{model_name}"
-        payload = json.dumps({
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "max_tokens": 360,
-            "temperature": 0.82,
-        }).encode("utf-8")
-        req = urllib.request.Request(
-            url, data=payload,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            method="POST",
-        )
         try:
+            url = clean_url(f"{CF_API_HOST}/client/v4/accounts/{acc_id}/ai/run/{model_name}")
+            payload = json.dumps({
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "max_tokens": 360,
+                "temperature": 0.82,
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                url, data=payload,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                method="POST",
+            )
             with urllib.request.urlopen(req, timeout=18) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = ((data.get("result") or {}).get("response") or "").strip()
@@ -1037,14 +1053,14 @@ def broadcast_to_telegram(
         return False
 
     link_suffix = ""
-    if square_post_url and "unavailable" not in square_post_url:
+    if square_post_url and "unavailable" not in str(square_post_url):
         link_suffix = f"\n\n🔗 Trade & View on Binance Square:\n{square_post_url}"
 
     full_message = f"{post_text}{link_suffix}"
 
     try:
         if image_path and Path(image_path).exists():
-            photo_url = f"{HTTPS_PREFIX}api.telegram.org/bot{bot_token}/sendPhoto"
+            photo_url = clean_url(f"{TG_API_HOST}/bot{bot_token}/sendPhoto")
             caption_text = full_message[:1020]
             with open(image_path, "rb") as photo_file:
                 boundary = "----WebKitFormBoundary" + hex(int(time.time() * 1000))[2:]
@@ -1070,7 +1086,7 @@ def broadcast_to_telegram(
                     res = json.loads(resp.read().decode("utf-8"))
                     return bool(res.get("ok"))
 
-        msg_url = f"{HTTPS_PREFIX}api.telegram.org/bot{bot_token}/sendMessage"
+        msg_url = clean_url(f"{TG_API_HOST}/bot{bot_token}/sendMessage")
         payload = json.dumps({"chat_id": chat_id, "text": full_message[:4090]}).encode("utf-8")
         req = urllib.request.Request(msg_url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=15) as resp:
@@ -1090,7 +1106,7 @@ def publish_to_binance_square(
     if dry_run:
         return {
             "status": "DRY_RUN_SUCCESS",
-            "post_url": f"{HTTPS_PREFIX}[www.binance.com/square/post/DRY_RUN_PREVIEW](https://www.binance.com/square/post/DRY_RUN_PREVIEW)",
+            "post_url": clean_url(f"{SQUARE_POST_BASE_URL}DRY_RUN_PREVIEW"),
             "images": image_paths,
         }
 
@@ -1123,7 +1139,7 @@ def publish_to_binance_square(
 
     payload = json.dumps({"bodyTextOnly": post_text}).encode("utf-8")
     req = urllib.request.Request(
-        BINANCE_SQUARE_OPENAPI_URL,
+        clean_url(BINANCE_SQUARE_OPENAPI_URL),
         data=payload,
         headers={"X-Square-OpenAPI-Key": api_key, "Content-Type": "application/json", "clienttype": "binanceSkill"},
         method="POST",
@@ -1136,7 +1152,7 @@ def publish_to_binance_square(
         content_id = (result.get("data") or {}).get("id", "unavailable")
         return {
             "status": "PUBLISHED_OPENAPI_TEXT",
-            "post_url": f"{HTTPS_PREFIX}[www.binance.com/square/post/](https://www.binance.com/square/post/){content_id}",
+            "post_url": clean_url(f"{SQUARE_POST_BASE_URL}{content_id}"),
             "images": image_paths,
         }
     raise RuntimeError(f"Binance Square API Error ({code}): {result}")
@@ -1224,7 +1240,7 @@ def run_single_cycle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Binance Square V3 Viral Human Auto-Bot")
+    parser = argparse.ArgumentParser(description="Binance Square V3.2 Viral Human Auto-Bot")
     parser.add_argument("--once", action="store_true", help="Run a single post cycle.")
     parser.add_argument("--dry-run", action="store_true", help="Preview locally without publishing.")
     parser.add_argument(
@@ -1261,7 +1277,7 @@ def main() -> None:
         print("=" * 78)
         return
 
-    print("[START] Launching V3 Global Peak-Session Scheduler (14-15 High-Impact Posts/Day)...")
+    print("[START] Launching V3.2 Global Peak-Session Scheduler...")
     while True:
         try:
             summary = run_single_cycle(
