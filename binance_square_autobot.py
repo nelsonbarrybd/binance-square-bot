@@ -265,7 +265,9 @@ def sanitize_human_post_text(raw_text: str) -> str:
     text = text.replace("**", "").replace("__", "").replace("```", "").replace('"', "")
     text = re.sub(r"(?m)^#{1,4}\s*", "", text)
 
-    text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
+   text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
+    text = re.sub(r"\bPrice\s+support\b", "price support", text)
+    text = re.sub(r"\babove\s+Price\b", "above price", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
