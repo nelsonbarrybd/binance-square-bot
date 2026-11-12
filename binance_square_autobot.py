@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.2 (COMPLETE & CRASH-PROOF EDITION)
+BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.3 (100% CHART-ALIGNED & PUNCHY EDITION)
 File Name: binance_square_autobot.py
 """
 
@@ -31,11 +31,10 @@ plt.rcParams["text.parse_math"] = False
 
 
 # ==============================================================================
-# 1. SAFE URL BUILDER (IMMUNE TO MARKDOWN COPY-PASTE BRACKETS)
+# 1. SAFE URL BUILDER & WRITE-TO-EARN COMMISSION FILTER
 # ==============================================================================
 
 def clean_url(raw_url: str) -> str:
-    """Strips any accidental Markdown link brackets [url](url) injected by clipboard."""
     u = str(raw_url).strip()
     m = re.search(r"\((https?://[^\s\)\]]+)\)", u)
     if m:
@@ -114,57 +113,57 @@ HUMAN_PERSONAS = [
     {
         "id": "CALM_INSTITUTIONAL_RANGE",
         "name": "Institutional Range Strategist",
-        "style": "Calm, two clean paragraphs explaining the exact consolidation range and breakout trigger.",
+        "style": "Calm, two crisp paragraphs explaining the exact consolidation range and breakout trigger.",
     },
     {
         "id": "VOLATILITY_SHOCK_BREAKDOWN",
         "name": "Volatility & Crash/Pump Analyst",
-        "style": "Narrative breakdown of a sharp 24h move, explaining where forced liquidations and real buyers sit.",
+        "style": "Sharp breakdown of a 24h move, explaining where forced liquidations and real buyers sit.",
     },
     {
         "id": "SHORT_PUNCHY_TAPE_NOTE",
         "name": "3-Line Tape Reader",
-        "style": "Ultra-short, 3-to-4 sentences max. Zero fluff, just the exact rejection/bounce level and position bias.",
+        "style": "Ultra-short, 3-to-4 sentences max. Zero fluff, just the exact rejection/bounce level and target.",
     },
     {
         "id": "FUNDING_SQUEEZE_HUNTER",
         "name": "Perpetual Derivatives Specialist",
-        "style": "Focuses on crowded retail shorts/longs, funding rates, and where the squeeze will force chasers to cover.",
+        "style": "Focuses on crowded retail positioning, funding rates, and liquidity sweeps.",
     },
     {
         "id": "LIQUIDITY_SWEEP_SNIPER",
         "name": "Smart Money Orderflow Trader",
-        "style": "Talks about stop-hunts below support or above resistance before the real directional move starts.",
+        "style": "Talks about stop-hunts at support or resistance before the real move starts.",
     },
     {
         "id": "MEME_HYPE_MOMENTUM",
         "name": "High-Energy Momentum Rider",
-        "style": "High-energy, punchy community vibe focusing on volume explosion and next psychological targets.",
+        "style": "High-energy, punchy trader vibe focusing on volume and the exact chart arrow target.",
     },
     {
         "id": "RISK_REWARD_ARCHITECT",
         "name": "Asymmetric R:R Swing Trader",
-        "style": "Focuses on tight invalidation vs wide upside target, explaining why chasing middle-of-range candles is a trap.",
+        "style": "Focuses on tight invalidation vs target level, explaining why chasing middle candles is a trap.",
     },
     {
         "id": "SESSION_HANDOVER_DESK",
         "name": "Global Session Handover Trader",
-        "style": "Contrasts what Asian/London traders did vs what Wall Street/US overlap volume is about to do next.",
+        "style": "Contrasts earlier session action vs what current session liquidity is pushing toward.",
     },
     {
         "id": "BULL_VS_BEAR_THESIS",
         "name": "Two-Sided Scenario Planner",
-        "style": "Lays out the exact price trigger that confirms the Bull case vs the Bear trap in two crisp blocks.",
+        "style": "Lays out the exact price trigger that confirms the Bull case vs the Bear trap.",
     },
     {
         "id": "WHALE_ACCUMULATION_SPOTTER",
         "name": "Volume Absorption Watcher",
-        "style": "Points out how dip buyers are quietly absorbing sell pressure above key 1H demand.",
+        "style": "Points out how buyers or sellers are dominating the 1H tape around the EMA-20.",
     },
     {
         "id": "BLUNT_REALIST_WARNING",
         "name": "No-Nonsense Risk Realist",
-        "style": "Calls out retail FOMO or panic selling directly and shares a disciplined entry plan.",
+        "style": "Calls out retail FOMO or panic directly and shares the exact chart target.",
     },
 ]
 
@@ -231,7 +230,7 @@ def save_bot_memory(
 
 
 # ==============================================================================
-# 3. STRICT ANTI-BOT SANITIZER (NO "HEY GUYS/FRIENDS", NO RAW STARS)
+# 3. STRICT ANTI-BOT SANITIZER (NO "HEY GUYS", NO ESSAY FLUFF, CLEAN CASHTAGS)
 # ==============================================================================
 
 def sanitize_human_post_text(raw_text: str) -> str:
@@ -259,12 +258,22 @@ def sanitize_human_post_text(raw_text: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    text = text.replace("**", "").replace("__", "").replace("```", "")
-    text = re.sub(r"(?m)^#{1,4}\s*", "", text)
+    # Remove AI-sounding filler phrases like ", the token that's been making waves in the DeFi space."
+    text = re.sub(
+        r",\s*the\s+(?:token|coin|asset)\s+that's\s+been\s+making\s+waves[^.!?\n]*[.!?]\s*",
+        " — ",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\b(?:Furthermore|Moreover|In conclusion|To summarize),?\s*", "", text, flags=re.IGNORECASE)
 
-    text = re.sub(r"\bAI\s+News\s+Sentiment\b", "Orderflow Bias", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bAI\s+Sentiment\b", "Market Bias", text, flags=re.IGNORECASE)
-    text = re.sub(r"\bAI\b", "Market", text)
+    # Fix space before punctuation after cashtags (e.g., "$TAO ," -> "$TAO,")
+    text = re.sub(r"(\$[A-Z0-9]{2,10})\s+([,.:;!?])", r"\1\2", text)
+    # Fix "$TAO /USDT" -> "$TAO"
+    text = re.sub(r"(\$[A-Z0-9]{2,10})\s*/\s*USDT", r"\1", text)
+
+    text = text.replace("**", "").replace("__", "").replace("```", "").replace('"', "")
+    text = re.sub(r"(?m)^#{1,4}\s*", "", text)
 
     text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
@@ -456,11 +465,12 @@ def scan_trending_market_candidate(recent_coins: List[str]) -> Dict[str, object]
     dist_to_res = abs(recent_resistance - last_price)
     dist_to_sup = abs(last_price - recent_support)
     is_bullish_bias = (
-        (change_24h >= 1.5 and float(rsi14[-1]) < 72)
-        or (float(rsi14[-1]) <= 36)
+        (change_24h >= 1.5 and float(rsi14[-1]) < 70)
+        or (float(rsi14[-1]) <= 34)
         or (last_price >= float(ema20[-1]) and dist_to_sup < dist_to_res)
     )
     bias_label = "BULLISH" if is_bullish_bias else "BEARISH"
+    target_price = recent_resistance if is_bullish_bias else recent_support
 
     return {
         "symbol": selected_symbol,
@@ -474,6 +484,7 @@ def scan_trending_market_candidate(recent_coins: List[str]) -> Dict[str, object]
         "funding_pct": funding_pct,
         "support": recent_support,
         "resistance": recent_resistance,
+        "target_price": target_price,
         "rsi": float(rsi14[-1]),
         "ema20": float(ema20[-1]),
         "ema50": float(ema50[-1]),
@@ -793,7 +804,7 @@ def generate_volatility_shock_card(
         ("BUYER DEMAND ZONE", format_price(float(market_data["support"])), bull_green),
         ("SELLER SUPPLY WALL", format_price(float(market_data["resistance"])), bear_red),
         ("24H TURNOVER", f"${float(market_data['quote_vol_24h'])/1e6:,.1f}M", text_white),
-        ("NEXT MOVE BIAS", market_data["bias"], bias_col),
+        ("CHART TARGET", format_price(float(market_data["target_price"])), bias_col),
     ]
 
     xs = [0.09, 0.52, 0.09, 0.52]
@@ -849,7 +860,7 @@ def generate_cloudflare_reaction_visual(
 
 
 # ==============================================================================
-# 6. 12-PERSONA HUMAN COPYWRITER (ZERO TEMPLATE CLONING)
+# 6. PUNCHY, CHART-ALIGNED HUMAN COPYWRITER (ALWAYS KEEPS 3 CASHTAGS)
 # ==============================================================================
 
 def get_cloudflare_credentials() -> Tuple[str, str]:
@@ -870,8 +881,8 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str) -> Optional[s
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                "max_tokens": 360,
-                "temperature": 0.82,
+                "max_tokens": 175,
+                "temperature": 0.78,
             }).encode("utf-8")
             req = urllib.request.Request(
                 url, data=payload,
@@ -881,7 +892,7 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str) -> Optional[s
             with urllib.request.urlopen(req, timeout=18) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = ((data.get("result") or {}).get("response") or "").strip()
-                if len(text) > 65:
+                if 45 < len(text) < 750:
                     return sanitize_human_post_text(text)
         except Exception:
             continue
@@ -902,6 +913,7 @@ def build_human_post_by_persona(
     price_str = format_price(float(market_data["last_price"]))
     sup_str = format_price(float(market_data["support"]))
     res_str = format_price(float(market_data["resistance"]))
+    target_str = format_price(float(market_data["target_price"]))
     high_str = format_price(float(market_data["high_24h"]))
     low_str = format_price(float(market_data["low_24h"]))
     ema20_str = format_price(float(market_data["ema20"]))
@@ -912,101 +924,88 @@ def build_human_post_by_persona(
     bias = str(market_data["bias"])
     pid = persona["id"]
 
+    # Guaranteed footer line so all 3 clickable commission widgets ALWAYS render
     tag_line = f"{cashtag_footer} #{base_coin} #Write2Earn #BinanceSquare"
 
+    arrow_direction_desc = (
+        f"BULLISH (Green chart arrow pointing UP from {price_str} toward {target_str} target)"
+        if bias == "BULLISH"
+        else f"BEARISH (Red chart arrow pointing DOWN from {price_str} toward {target_str} target)"
+    )
+
     system_prompt = (
-        f"You are a real human crypto futures & spot trader posting on Binance Square ({persona['name']}). "
-        f"Style: {persona['style']} "
-        "CRITICAL RULES: "
-        "1. NEVER start with 'Hey guys', 'Hey friends', 'Hey traders', 'Hello', or 'Quick update'! "
-        f"2. Put {primary_tag} in your VERY FIRST sentence. "
-        "3. NEVER use Markdown asterisks (** or *) anywhere. "
-        "4. Do NOT use a generic 4-bullet list with 📍/🛡️/🚧 emojis—write like an authentic human trader!"
+        f"You are an experienced crypto trader on Binance Square ({persona['name']}). "
+        "Write a short, punchy 4-to-6 sentence trading post ( strictly 55 to 95 words MAX ). "
+        "STRICT RULES: "
+        "1. NEVER start with 'Hey guys', 'Hey friends', or essay intros like 'the token that has been making waves'. "
+        f"2. Your thesis MUST match the chart arrow direction: {arrow_direction_desc}! "
+        "3. Start your first sentence directly with the cashtag and price action. "
+        "4. NO Markdown asterisks (** or *). End with a 1-line question for traders. Do NOT include hashtags (they will be appended automatically)."
     )
 
     user_prompt = (
-        f"Write a high-engagement Binance Square post for {primary_tag} ({base_coin}/USDT).\n"
-        f"Live Data: Price {price_str} ({chg:+.2f}% 24h), 24h High {high_str}, 24h Low {low_str}, "
-        f"1H Support {sup_str}, 1H Resistance {res_str}, 1H EMA20 {ema20_str}, RSI {rsi_val:.1f}, "
-        f"Perp Funding {funding_val:+.4f}%, 24h Volume ${vol_m:,.1f}M, Session: {session_info['name']}, Bias: {bias}.\n"
-        f"Persona to use: {pid} ({persona['style']}).\n"
-        f"End with a short direct question to spark comments and this exact tag line:\n{tag_line}"
+        f"Coin: {primary_tag} at {price_str} ({chg:+.2f}% 24h, Vol ${vol_m:,.1f}M).\n"
+        f"Chart Setup Direction: {arrow_direction_desc}.\n"
+        f"Key Levels: Support {sup_str}, Resistance {res_str}, 1H EMA20 {ema20_str}, RSI {rsi_val:.1f}, Funding {funding_val:+.4f}%.\n"
+        f"Style: {persona['style']}\n"
+        f"Write the short 2-paragraph trader note now (no hashtags at the end):"
     )
 
-    cf_post = generate_text_cloudflare(system_prompt, user_prompt)
-    if cf_post and primary_tag in cf_post:
-        return sanitize_human_post_text(cf_post)
+    cf_body = generate_text_cloudflare(system_prompt, user_prompt)
+    if cf_body and primary_tag in cf_body:
+        # Strip any partial hashtags at the end and append our guaranteed 3-cashtag footer
+        cf_body = re.sub(r"(?:\s*#[A-Za-z0-9_]+)+\s*$", "", cf_body).strip()
+        return sanitize_human_post_text(f"{cf_body}\n\n{tag_line}")
 
-    if pid == "URGENT_FAKE_PUMP_CALL":
-        if bias == "BEARISH":
+    # 100% Chart-Aligned Punchy Human Fallbacks
+    if bias == "BEARISH":
+        if pid in ("URGENT_FAKE_PUMP_CALL", "BLUNT_REALIST_WARNING"):
             body = (
-                f"{primary_tag} stalling hard near {price_str} ({chg:+.2f}%) — don't fall for weak bounce wicks! 📉\n\n"
-                f"Every push toward {res_str} is getting sold into right as {session_info['name']} liquidity steps in. "
-                f"Unless bulls can force a clean 1H close above {res_str}, the path of least resistance points straight back to the {sup_str} demand pocket.\n\n"
-                f"I'm keeping my powder dry and watching how price reacts if {sup_str} gets swept alongside {secondary_tags[0]}.\n\n"
-                f"Are you shorting this {primary_tag} rejection or waiting for {sup_str}? 👇\n\n{tag_line}"
+                f"{primary_tag} is showing heavy exhaustion near {price_str} ({chg:+.2f}%) — don't get trapped buying weak bounce wicks! 📉\n\n"
+                f"Sellers are defending the 1H EMA-20 ({ema20_str}) and rejecting every push toward {res_str}. "
+                f"As long as price stays capped under {ema20_str}, my chart target points straight down to sweep the {sup_str} liquidity floor.\n\n"
+                f"Are you shorting {primary_tag} toward {sup_str} or waiting on the sidelines? 👇"
+            )
+        elif pid == "CALM_INSTITUTIONAL_RANGE":
+            body = (
+                f"{primary_tag}\n"
+                f"In the short term, {primary_tag} faces sustained sell pressure at {price_str} ({chg:+.2f}%), trading below its 1H EMA-20 at {ema20_str}. "
+                f"Pay close attention to how buyers react as price approaches the {sup_str} support floor.\n\n"
+                f"Until bulls can reclaim {ema20_str} and break {res_str} on real volume, downside momentum favors a retest of {sup_str} alongside {secondary_tags[0]}.\n\n"
+                f"Does {sup_str} hold on {primary_tag} today, or do we break lower? 👇"
             )
         else:
             body = (
-                f"{primary_tag} bears just got trapped below {price_str} ({chg:+.2f}%)! 🚀\n\n"
-                f"Sellers tried to push it under {sup_str} earlier, but spot buyers absorbed the entire move with ${vol_m:,.1f}M in volume. "
-                f"Now price is reclaiming {ema20_str} and eyeing the {res_str} breakout wall.\n\n"
-                f"If {res_str} flips into support this session, shorts will be forced to cover fast.\n\n"
-                f"Who else is riding {primary_tag} higher from here? Drop your target! 👇\n\n{tag_line}"
+                f"Sellers remain in control on the {primary_tag} 1H tape at {price_str} ({chg:+.2f}% in 24h).\n\n"
+                f"After dropping from the {high_str} high on ${vol_m:,.1f}M volume, weak bounces are getting absorbed below {ema20_str}. "
+                f"I'm watching for a clean flush down into the {sup_str} target zone before looking for any relief bounce.\n\n"
+                f"Riding {primary_tag} short to {sup_str} or waiting for the dip? 👇"
             )
-        return sanitize_human_post_text(body)
+    else:
+        if pid in ("URGENT_FAKE_PUMP_CALL", "MEME_HYPE_MOMENTUM"):
+            body = (
+                f"{primary_tag} buyers just stepped in strong at {price_str} ({chg:+.2f}%)! 🚀\n\n"
+                f"Bears tried to break the {sup_str} floor, but spot demand absorbed the dip with ${vol_m:,.1f}M in 24h turnover. "
+                f"Holding above {ema20_str} opens a clean 1H run straight toward my {res_str} chart target.\n\n"
+                f"Who else is longing {primary_tag} for the {res_str} breakout? Drop your target! 👇"
+            )
+        elif pid == "CALM_INSTITUTIONAL_RANGE":
+            body = (
+                f"{primary_tag}\n"
+                f"In the short term, {primary_tag} is building bullish structure at {price_str} ({chg:+.2f}%) after defending the {sup_str} demand zone. "
+                f"Orderflow during the {session_info['name']} favors buyers as long as 1H candles hold {sup_str}.\n\n"
+                f"A decisive push through {ema20_str} targets the {res_str} resistance wall next alongside {secondary_tags[0]} and {secondary_tags[1]}.\n\n"
+                f"Do we see {primary_tag} clear {res_str} in this session? 👇"
+            )
+        else:
+            body = (
+                f"Clean 1H bounce structure forming on {primary_tag} at {price_str} ({chg:+.2f}%)! ⚡\n\n"
+                f"Buyers defended the {sup_str} support zone cleanly while 1H RSI sits at {rsi_val:.1f} with perp funding at {funding_val:+.4f}%. "
+                f"As long as {sup_str} holds, my upside target remains the {res_str} liquidity wall.\n\n"
+                f"Are you longing {primary_tag} here or waiting for {res_str} to flip? 👇"
+            )
 
-    if pid == "CALM_INSTITUTIONAL_RANGE":
-        body = (
-            f"{primary_tag}\n"
-            f"In the short term, {primary_tag} is expected to consolidate within the {sup_str} ~ {res_str} range "
-            f"(currently trading at {price_str}, {chg:+.2f}%). Pay close attention to orderflow reaction at both ends of this channel during the {session_info['name']}.\n\n"
-            f"In the medium term, if {primary_tag} breaks above {res_str} decisively and holds above {ema20_str}, momentum opens up a clean run toward higher liquidity alongside {secondary_tags[0]} and {secondary_tags[1]}. "
-            f"Conversely, losing {sup_str} invalidates the bounce structure.\n\n"
-            f"Which side of the {sup_str}–{res_str} range breaks first? 👇\n\n{tag_line}"
-        )
-        return sanitize_human_post_text(body)
-
-    if pid == "VOLATILITY_SHOCK_BREAKDOWN":
-        move_desc = f"dropped from {high_str} down to {price_str}" if chg < 0 else f"surged from {low_str} up to {price_str}"
-        body = (
-            f"{primary_tag} just {move_desc} ({chg:+.2f}% in 24h) as ${vol_m:,.1f}M in spot turnover hit the tape! ⚡\n\n"
-            f"After a move like this, chasing middle-of-the-range candles is how retail gets chopped up. "
-            f"The real battleground right now sits between the {sup_str} floor and the {res_str} supply wall (1H RSI at {rsi_val:.1f}).\n\n"
-            f"My focus: watching if {sup_str} holds on the retest before sizing in alongside {secondary_tags[0]}.\n\n"
-            f"Are you buying this {primary_tag} move or fading it? 👇\n\n{tag_line}"
-        )
-        return sanitize_human_post_text(body)
-
-    if pid == "SHORT_PUNCHY_TAPE_NOTE":
-        body = (
-            f"{primary_tag} at {price_str} ({chg:+.2f}%) — keeping it simple for the {session_info['name']}.\n\n"
-            f"Buyers stepped in cleanly at {sup_str}, while sellers are stacked heavy at {res_str}. "
-            f"Until we get a confirmed 1H close outside {sup_str}–{res_str}, I'm trading the edges and ignoring the noise.\n\n"
-            f"Long at {sup_str} or Short at {res_str} — what's your play? 👇\n\n{tag_line}"
-        )
-        return sanitize_human_post_text(body)
-
-    if pid == "FUNDING_SQUEEZE_HUNTER":
-        squeeze_dir = "short squeeze above " + res_str if funding_val <= 0 else "long flush toward " + sup_str
-        body = (
-            f"Perp funding on {primary_tag} is sitting at {funding_val:+.4f}% while price hovers around {price_str} ({chg:+.2f}%). 👀\n\n"
-            f"Whenever leverage crowds one side of the boat during the {session_info['name']}, market makers love hunting stops. "
-            f"Key levels on my chart: {sup_str} downside floor vs {res_str} upside trigger — watching for a potential {squeeze_dir}.\n\n"
-            f"Where do you see {primary_tag} heading next? 👇\n\n{tag_line}"
-        )
-        return sanitize_human_post_text(body)
-
-    body = (
-        f"Watching {primary_tag} closely at {price_str} ({chg:+.2f}% 24h) as {session_info['region_focus']} volume picks up.\n\n"
-        f"▸ Key Demand Zone: {sup_str}\n"
-        f"▸ Breakout Trigger: {res_str}\n"
-        f"▸ 1H Structure: EMA-20 at {ema20_str} | RSI at {rsi_val:.1f}\n\n"
-        f"Holding above {sup_str} keeps the {bias.lower()} thesis intact for a push toward {res_str}. "
-        f"If {sup_str} gives out on heavy volume, I'll wait for the lower liquidity sweep before touching it.\n\n"
-        f"Bullish or Bearish on {primary_tag} for the next 4 hours? 👇\n\n{tag_line}"
-    )
-    return sanitize_human_post_text(body)
+    return sanitize_human_post_text(f"{body}\n\n{tag_line}")
 
 
 # ==============================================================================
@@ -1240,7 +1239,7 @@ def run_single_cycle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Binance Square V3.2 Viral Human Auto-Bot")
+    parser = argparse.ArgumentParser(description="Binance Square V3.3 Viral Human Auto-Bot")
     parser.add_argument("--once", action="store_true", help="Run a single post cycle.")
     parser.add_argument("--dry-run", action="store_true", help="Preview locally without publishing.")
     parser.add_argument(
@@ -1277,7 +1276,7 @@ def main() -> None:
         print("=" * 78)
         return
 
-    print("[START] Launching V3.2 Global Peak-Session Scheduler...")
+    print("[START] Launching V3.3 Global Peak-Session Scheduler...")
     while True:
         try:
             summary = run_single_cycle(
