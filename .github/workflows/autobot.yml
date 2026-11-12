@@ -1,13 +1,20 @@
-name: Binance Square 24/7 Free Write-to-Earn Bot
+name: Binance Square V3 Viral Human Write-to-Earn Bot
 
 on:
   schedule:
-    # Runs automatically every 25 minutes, 24/7 (~50 posts/day across all global trading sessions)
-    - cron: '*/25 * * * *'
+    # 1. US & London Overlap Peak (13:00 - 21:00 UTC) -> Most active global trading hours (7 posts)
+    - cron: '12 13,14,15,17,18,19,20 * * *'
+    # 2. London & European Open (08:00 - 12:00 UTC) -> High volume breakout hours (3 posts)
+    - cron: '25 8,10,12 * * *'
+    # 3. Asian Whales Session (00:00 - 07:00 UTC) -> Singapore/Tokyo/Korea peak (4 posts)
+    - cron: '40 0,2,4,6 * * *'
+    # 4. Late US / Daily Candle Close (22:00 UTC) -> Daily close recap (1 post)
+    - cron: '18 22 * * *'
+
   workflow_dispatch:
     inputs:
       force_format:
-        description: 'Optional: Force a specific post format (CHART_IMAGE_POST, QUICK_ALERT, LONG_ARTICLE, TRADER_POLL)'
+        description: 'Optional format (MOBILE_ARROW_CHART, PRO_SETUP_BOX_CHART, PURE_TEXT_ALPHA, DUAL_COMBO_POST, VOLATILITY_SHOCK_CARD)'
         required: false
         default: ''
 
@@ -33,6 +40,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Restore Bot Anti-Repetition Memory Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: bot_memory.json
+          key: square-bot-memory-${{ github.run_id }}
+          restore-keys: |
+            square-bot-memory-
+
       - name: Install Python Chart Libraries
         run: |
           python -m pip install --upgrade pip
@@ -41,22 +56,34 @@ jobs:
       - name: Download Official Binance Square Skill Scripts
         run: |
           mkdir -p square-post
-          curl -sL https://github.com/binance/binance-skills-hub/archive/refs/heads/main.zip -o hub.zip
+          curl -sL [https://github.com/binance/binance-skills-hub/archive/refs/heads/main.zip](https://github.com/binance/binance-skills-hub/archive/refs/heads/main.zip) -o hub.zip
           unzip -q hub.zip
           cp -r binance-skills-hub-main/skills/binance/square-post/* square-post/
           rm -rf hub.zip binance-skills-hub-main
-          ls -la square-post/scripts
 
-      - name: Generate & Publish Human-Style Post to Binance Square
+      - name: Generate & Publish Viral Human Post (Binance Square + Telegram)
         env:
           BINANCE_SQUARE_OPENAPI_KEY: ${{ secrets.BINANCE_SQUARE_OPENAPI_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SQUARE_SKILL_DIR: square-post
           FORCE_FORMAT: ${{ github.event.inputs.force_format }}
         run: |
-          if [ -n "$FORCE_FORMAT" ]; then
-            python binance_square_autobot.py --once --square-skill-dir square-post --format "$FORCE_FORMAT"
-          else
-            python binance_square_autobot.py --once --square-skill-dir square-post
+          SCRIPT_NAME="binance_square_autobot.py"
+          if [ -f "binance_square_autobot_telegram.py" ]; then
+            SCRIPT_NAME="binance_square_autobot_telegram.py"
           fi
+          if [ -n "$FORCE_FORMAT" ]; then
+            python "$SCRIPT_NAME" --once --square-skill-dir square-post --format "$FORCE_FORMAT"
+          else
+            python "$SCRIPT_NAME" --once --square-skill-dir square-post
+          fi
+
+      - name: Save Updated Bot Memory Cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: bot_memory.json
+          key: square-bot-memory-${{ github.run_id }}
