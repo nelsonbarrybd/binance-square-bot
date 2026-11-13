@@ -1241,9 +1241,29 @@ def run_single_cycle(
         square_post_url=pub_result.get("post_url"),
     )
     x_status = broadcast_to_webhook(
+    post_text=post_text,
+    image_url=pub_result.get("post_url"),
+    square_post_url=pub_result.get("post_url"),
+    coin=base_coin,
+)
+```[cite: 24]
+
+---
+
+### ওই জায়গায় ঠিক যা পেস্ট করবেন:
+```python
+    extracted_image_url = None
+    if isinstance(pub_result, dict):
+        stdout_content = pub_result.get("stdout", "")
+        for line in stdout_content.splitlines():
+            if "Ready:" in line and "http" in line:
+                extracted_image_url = line.split("Ready:", 1)[1].strip()
+                break
+
+    x_status = broadcast_to_webhook(
         post_text=post_text,
-        image_url=pub_result.get("post_url"),
-        square_post_url=pub_result.get("post_url"),
+        image_url=extracted_image_url,
+        square_post_url=pub_result.get("link") or pub_result.get("url"),
         coin=base_coin,
     )
     save_bot_memory(memory_file, memory, base_coin, persona["id"], visual_format)
