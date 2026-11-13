@@ -1096,6 +1096,7 @@ def broadcast_to_x_twitter(
     auth = OAuth1(api_key, api_secret, access_token, access_token_secret)
     media_id = None
 
+    # ১. ইমেজ আপলোড
     if image_path and Path(image_path).exists():
         try:
             with open(image_path, "rb") as img_file:
@@ -1107,9 +1108,13 @@ def broadcast_to_x_twitter(
                 )
                 if r.status_code in (200, 201):
                     media_id = r.json().get("media_id_string")
+                    print(f"[+] X image uploaded successfully. ID: {media_id}")
+                else:
+                    print(f"[WARN] X image upload response: {r.status_code} - {r.text}")
         except Exception as exc:
             print(f"[WARN] X image upload failed: {exc}")
 
+    # ২. টেক্সট তৈরি
     link_url = (
         square_post_url
         if (square_post_url and "unavailable" not in str(square_post_url))
@@ -1120,20 +1125,23 @@ def broadcast_to_x_twitter(
     clean_body = post_text.strip()
     if len(clean_body) > max_len:
         clean_body = clean_body[: max_len - 3].rstrip() + "..."
+    tweet_text = f"{clean_body}{footer}"
 
-    payload = {"text": f"{clean_body}{footer}"}
+    # ৩. টুইট পাবলিশ (v1.1 statuses/update - ক্রেডিট ঝামেলা ছাড়াই কাজ করে)
+    update_url = "https://api.twitter.com/1.1/statuses/update.json"
+    params = {"status": tweet_text}
     if media_id:
-        payload["media"] = {"media_ids": [media_id]}
+        params["media_ids"] = media_id
 
     try:
         res = requests.post(
-            "https://api.twitter.com/2/tweets",
+            update_url,
             auth=auth,
-            json=payload,
+            data=params,
             timeout=30,
         )
         if res.status_code in (200, 201):
-            print("[+] Successfully posted to X (Twitter)!")
+            print("[+] Successfully posted to X (Twitter) via v1.1!")
             return True
         print(f"[WARN] X post failed ({res.status_code}): {res.text}")
     except Exception as exc:
