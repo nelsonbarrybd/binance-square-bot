@@ -1259,7 +1259,7 @@ def run_single_cycle(
         "post_text": post_text,
         "publish_result": pub_result,
         "telegram_synced": tg_status,
-        "x_synced": x_status,
+        "webhook_synced": x_status,
     }
 
 
