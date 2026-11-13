@@ -26,6 +26,12 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.gridspec import GridSpec
 import numpy as np
+try:
+    import requests
+    from requests_oauthlib import OAuth1
+except ImportError:
+    requests = None
+    OAuth1 = None
 
 plt.rcParams["text.parse_math"] = False
 
@@ -1069,7 +1075,70 @@ def broadcast_to_telegram(
     except Exception as exc:
         print(f"[WARN] Telegram sync skipped: {exc}")
         return False
+def broadcast_to_x_twitter(
+    post_text: str,
+    image_path: Optional[str] = None,
+    square_post_url: Optional[str] = None,
+) -> bool:
+    if not (requests and OAuth1):
+        print("[WARN] requests_oauthlib not installed, skipping X.")
+        return False
 
+    api_key = os.environ.get("X_API_KEY", "").strip()
+    api_secret = os.environ.get("X_API_SECRET", "").strip()
+    access_token = os.environ.get("X_ACCESS_TOKEN", "").strip()
+    access_token_secret = os.environ.get("X_ACCESS_SECRET", "").strip()
+
+    if not all([api_key, api_secret, access_token, access_token_secret]):
+        print("[WARN] X credentials missing, skipping X broadcast.")
+        return False
+
+    auth = OAuth1(api_key, api_secret, access_token, access_token_secret)
+    media_id = None
+
+    if image_path and Path(image_path).exists():
+        try:
+            with open(image_path, "rb") as img_file:
+                r = requests.post(
+                    "https://upload.twitter.com/1.1/media/upload.json",
+                    auth=auth,
+                    files={"media": img_file},
+                    timeout=30,
+                )
+                if r.status_code in (200, 201):
+                    media_id = r.json().get("media_id_string")
+        except Exception as exc:
+            print(f"[WARN] X image upload failed: {exc}")
+
+    link_url = (
+        square_post_url
+        if (square_post_url and "unavailable" not in str(square_post_url))
+        else "https://www.binance.com/en/square/profile/alphapulse_io"
+    )
+    footer = f"\n\n🔗 {link_url}"
+    max_len = 275 - len(footer)
+    clean_body = post_text.strip()
+    if len(clean_body) > max_len:
+        clean_body = clean_body[: max_len - 3].rstrip() + "..."
+
+    payload = {"text": f"{clean_body}{footer}"}
+    if media_id:
+        payload["media"] = {"media_ids": [media_id]}
+
+    try:
+        res = requests.post(
+            "https://api.twitter.com/2/tweets",
+            auth=auth,
+            json=payload,
+            timeout=30,
+        )
+        if res.status_code in (200, 201):
+            print("[+] Successfully posted to X (Twitter)!")
+            return True
+        print(f"[WARN] X post failed ({res.status_code}): {res.text}")
+    except Exception as exc:
+        print(f"[WARN] X sync error: {exc}")
+    return False
 
 def publish_to_binance_square(
     post_text: str,
@@ -1196,7 +1265,11 @@ def run_single_cycle(
         image_path=first_image,
         square_post_url=pub_result.get("post_url"),
     )
-
+    x_status = broadcast_to_x_twitter(
+        post_text=post_text,
+        image_path=first_image,
+        square_post_url=pub_result.get("post_url"),
+    )
     save_bot_memory(memory_file, memory, base_coin, persona["id"], visual_format)
 
     return {
@@ -1210,6 +1283,7 @@ def run_single_cycle(
         "post_text": post_text,
         "publish_result": pub_result,
         "telegram_synced": tg_status,
+        "x_synced": x_status,
     }
 
 
