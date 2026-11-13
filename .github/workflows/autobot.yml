@@ -51,7 +51,7 @@ jobs:
       - name: Install Python Chart Libraries
         run: |
           python -m pip install --upgrade pip
-          pip install matplotlib numpy
+          pip install matplotlib numpy requests requests_oauthlib
 
       - name: Download Official Binance Square Skill Scripts
         run: |
@@ -71,6 +71,10 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
           SQUARE_SKILL_DIR: square-post
           FORCE_FORMAT: ${{ github.event.inputs.force_format }}
         run: |
