@@ -1075,77 +1075,44 @@ def broadcast_to_telegram(
     except Exception as exc:
         print(f"[WARN] Telegram sync skipped: {exc}")
         return False
-def broadcast_to_x_twitter(
+def broadcast_to_webhook(
     post_text: str,
-    image_path: Optional[str] = None,
+    image_url: Optional[str] = None,
     square_post_url: Optional[str] = None,
+    coin: Optional[str] = None,
 ) -> bool:
-    if not (requests and OAuth1):
-        print("[WARN] requests_oauthlib not installed, skipping X.")
+    webhook_url = os.environ.get("MAKE_WEBHOOK_URL", "").strip()
+    if not webhook_url:
+        print("[WARN] MAKE_WEBHOOK_URL missing, skipping webhook broadcast.")
         return False
 
-    api_key = os.environ.get("X_API_KEY", "").strip()
-    api_secret = os.environ.get("X_API_SECRET", "").strip()
-    access_token = os.environ.get("X_ACCESS_TOKEN", "").strip()
-    access_token_secret = os.environ.get("X_ACCESS_SECRET", "").strip()
-
-    if not all([api_key, api_secret, access_token, access_token_secret]):
-        print("[WARN] X credentials missing, skipping X broadcast.")
-        return False
-
-    auth = OAuth1(api_key, api_secret, access_token, access_token_secret)
-    media_id = None
-
-    # ১. ইমেজ আপলোড
-    if image_path and Path(image_path).exists():
-        try:
-            with open(image_path, "rb") as img_file:
-                r = requests.post(
-                    "https://upload.twitter.com/1.1/media/upload.json",
-                    auth=auth,
-                    files={"media": img_file},
-                    timeout=30,
-                )
-                if r.status_code in (200, 201):
-                    media_id = r.json().get("media_id_string")
-                    print(f"[+] X image uploaded successfully. ID: {media_id}")
-                else:
-                    print(f"[WARN] X image upload response: {r.status_code} - {r.text}")
-        except Exception as exc:
-            print(f"[WARN] X image upload failed: {exc}")
-
-    # ২. টেক্সট তৈরি
     link_url = (
         square_post_url
         if (square_post_url and "unavailable" not in str(square_post_url))
         else "https://www.binance.com/en/square/profile/alphapulse_io"
     )
-    footer = f"\n\n🔗 {link_url}"
-    max_len = 275 - len(footer)
-    clean_body = post_text.strip()
-    if len(clean_body) > max_len:
-        clean_body = clean_body[: max_len - 3].rstrip() + "..."
-    tweet_text = f"{clean_body}{footer}"
 
-    # ৩. টুইট পাবলিশ (v1.1 statuses/update - ক্রেডিট ঝামেলা ছাড়াই কাজ করে)
-    update_url = "https://api.twitter.com/1.1/statuses/update.json"
-    params = {"status": tweet_text}
-    if media_id:
-        params["media_ids"] = media_id
+    payload = {
+        "text": post_text.strip(),
+        "image_url": image_url or "",
+        "square_url": link_url,
+        "coin": coin or "CRYPTO",
+    }
 
     try:
-        res = requests.post(
-            update_url,
-            auth=auth,
-            data=params,
-            timeout=30,
+        req = urllib.request.Request(
+            webhook_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
         )
-        if res.status_code in (200, 201):
-            print("[+] Successfully posted to X (Twitter) via v1.1!")
-            return True
-        print(f"[WARN] X post failed ({res.status_code}): {res.text}")
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            if resp.status in (200, 201, 204):
+                print("[+] Successfully sent data to Make.com Webhook!")
+                return True
+        print(f"[WARN] Webhook send status: {resp.status}")
     except Exception as exc:
-        print(f"[WARN] X sync error: {exc}")
+        print(f"[WARN] Webhook request error: {exc}")
     return False
 
 def publish_to_binance_square(
@@ -1273,10 +1240,11 @@ def run_single_cycle(
         image_path=first_image,
         square_post_url=pub_result.get("post_url"),
     )
-    x_status = broadcast_to_x_twitter(
+    x_status = broadcast_to_webhook(
         post_text=post_text,
-        image_path=first_image,
+        image_url=pub_result.get("post_url"),
         square_post_url=pub_result.get("post_url"),
+        coin=base_coin,
     )
     save_bot_memory(memory_file, memory, base_coin, persona["id"], visual_format)
 
