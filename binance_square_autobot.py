@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V3.5 (FINAL COMPLETE EDITION)
+BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V4.0 (VIRAL HUMAN & ENGAGEMENT ENGINE)
 File Name: binance_square_autobot.py
 """
 
@@ -26,12 +26,6 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.gridspec import GridSpec
 import numpy as np
-try:
-    import requests
-    from requests_oauthlib import OAuth1
-except ImportError:
-    requests = None
-    OAuth1 = None
 
 plt.rcParams["text.parse_math"] = False
 
@@ -99,99 +93,60 @@ COIN_SEO_SLUGS = {
 VISUAL_FORMATS = [
     "MOBILE_ARROW_CHART",
     "PRO_SETUP_BOX_CHART",
-    "MOBILE_ARROW_CHART",
-    "PURE_TEXT_ALPHA",
-    "DUAL_COMBO_POST",
     "VOLATILITY_SHOCK_CARD",
+    "TRADER_POLL",
+    "CHEAT_SHEET_ALPHA",
+    "DUAL_COMBO_POST",
 ]
 
 HUMAN_PERSONAS = [
     {
-        "id": "URGENT_FAKE_PUMP_CALL",
-        "name": "Aggressive Momentum Contrarian",
-        "style": "Direct, urgent, calling out fake pumps or exhaustion wicks like a real floor trader.",
+        "id": "LIQUIDITY_HUNT_TRADER",
+        "name": "Smart Money Orderflow Sniper",
+        "angle": "Explain where trapped breakout traders or panic sellers gave liquidity to spot whales.",
     },
     {
-        "id": "CALM_INSTITUTIONAL_RANGE",
-        "name": "Institutional Range Strategist",
-        "style": "Calm, two crisp paragraphs explaining the exact consolidation range and breakout trigger.",
+        "id": "FUNDING_ARBITRAGE_ANALYST",
+        "name": "Perp Derivatives Specialist",
+        "angle": "Call out retail over-leverage, perpetual funding imbalance, and short squeeze risk.",
     },
     {
-        "id": "VOLATILITY_SHOCK_BREAKDOWN",
-        "name": "Volatility & Crash/Pump Analyst",
-        "style": "Sharp breakdown of a 24h move, explaining where forced liquidations and real buyers sit.",
+        "id": "LEVEL_TO_LEVEL_SCALPER",
+        "name": "Intraday Price Action Tape Reader",
+        "angle": "Ultra-crisp 3-sentence read focusing strictly on the rejection wick, EMA-20, and the invalidation point.",
     },
     {
-        "id": "SHORT_PUNCHY_TAPE_NOTE",
-        "name": "3-Line Tape Reader",
-        "style": "Ultra-short, 3-to-4 sentences max. Zero fluff, just the exact rejection/bounce level and target.",
+        "id": "CONTRARIAN_SHOCK_REALIST",
+        "name": "Anti-FOMO Market Realist",
+        "angle": "Directly challenge retail excitement or panic. Tell them why chasing green/red candles here is suicidal.",
     },
     {
-        "id": "FUNDING_SQUEEZE_HUNTER",
-        "name": "Perpetual Derivatives Specialist",
-        "style": "Focuses on crowded retail positioning, funding rates, and liquidity sweeps.",
-    },
-    {
-        "id": "LIQUIDITY_SWEEP_SNIPER",
-        "name": "Smart Money Orderflow Trader",
-        "style": "Talks about stop-hunts at support or resistance before the real move starts.",
-    },
-    {
-        "id": "MEME_HYPE_MOMENTUM",
-        "name": "High-Energy Momentum Rider",
-        "style": "High-energy, punchy trader vibe focusing on volume and the next key price target.",
-    },
-    {
-        "id": "RISK_REWARD_ARCHITECT",
-        "name": "Asymmetric R:R Swing Trader",
-        "style": "Focuses on tight invalidation vs target level, explaining why chasing middle candles is a trap.",
-    },
-    {
-        "id": "SESSION_HANDOVER_DESK",
-        "name": "Global Session Handover Trader",
-        "style": "Contrasts earlier session action vs what current session liquidity is pushing toward.",
-    },
-    {
-        "id": "BULL_VS_BEAR_THESIS",
-        "name": "Two-Sided Scenario Planner",
-        "style": "Lays out the exact price trigger that confirms the Bull case vs the Bear trap.",
-    },
-    {
-        "id": "WHALE_ACCUMULATION_SPOTTER",
-        "name": "Volume Absorption Watcher",
-        "style": "Points out how buyers or sellers are dominating the 1H tape around the EMA-20.",
-    },
-    {
-        "id": "BLUNT_REALIST_WARNING",
-        "name": "No-Nonsense Risk Realist",
-        "style": "Calls out retail FOMO or panic directly and shares the exact price target.",
+        "id": "RANGE_ROTATION_STRATEGIST",
+        "name": "Institutional Range Architect",
+        "angle": "Outline the exact supply ceiling vs demand base without taking emotional sides.",
     },
 ]
 
 GLOBAL_SESSIONS = {
     "ASIA_PEAK": {
         "name": "Asian Session",
-        "region_focus": "Singapore, Tokyo & Hong Kong Desks",
         "utc_hours": (0, 8),
-        "interval_minutes": 115,
+        "interval_minutes": 180,  # 3 hours spacing
     },
     "EUROPE_LONDON_PEAK": {
-        "name": "London & European Session",
-        "region_focus": "London, Frankfurt & Istanbul Desks",
+        "name": "London Session",
         "utc_hours": (8, 13),
-        "interval_minutes": 95,
+        "interval_minutes": 150,  # 2.5 hours spacing
     },
     "US_EUROPE_OVERLAP_PEAK": {
         "name": "US & London Overlap",
-        "region_focus": "Wall Street & London Peak Liquidity",
         "utc_hours": (13, 21),
-        "interval_minutes": 75,
+        "interval_minutes": 140,  # Prime liquidity spacing
     },
     "LATE_US_PACIFIC": {
-        "name": "Late US Session",
-        "region_focus": "US West Coast & Daily Candle Close",
+        "name": "Late US & Daily Close",
         "utc_hours": (21, 24),
-        "interval_minutes": 135,
+        "interval_minutes": 210,  # 3.5 hours spacing
     },
 }
 
@@ -202,8 +157,8 @@ def load_bot_memory(memory_file: str) -> Dict[str, List[str]]:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             return {
-                "recent_coins": list(data.get("recent_coins", []))[-10:],
-                "recent_personas": list(data.get("recent_personas", []))[-8:],
+                "recent_coins": list(data.get("recent_coins", []))[-12:],
+                "recent_personas": list(data.get("recent_personas", []))[-6:],
                 "recent_formats": list(data.get("recent_formats", []))[-4:],
             }
         except Exception:
@@ -218,8 +173,8 @@ def save_bot_memory(
     persona_id: str,
     fmt: str,
 ) -> None:
-    memory["recent_coins"] = (memory.get("recent_coins", []) + [coin])[-10:]
-    memory["recent_personas"] = (memory.get("recent_personas", []) + [persona_id])[-8:]
+    memory["recent_coins"] = (memory.get("recent_coins", []) + [coin])[-12:]
+    memory["recent_personas"] = (memory.get("recent_personas", []) + [persona_id])[-6:]
     memory["recent_formats"] = (memory.get("recent_formats", []) + [fmt])[-4:]
     path = Path(memory_file)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -229,16 +184,18 @@ def save_bot_memory(
 def sanitize_human_post_text(raw_text: str) -> str:
     text = raw_text.strip()
 
+    # রোবোটিক হেডার এবং এআই বয়ান ক্লিনিং
     for label in (
         "MOBILE_ARROW_CHART", "PRO_SETUP_BOX_CHART", "PURE_TEXT_ALPHA",
-        "DUAL_COMBO_POST", "VOLATILITY_SHOCK_CARD", "CHART_IMAGE_POST",
-        "QUICK_ALERT", "TRADER_POLL", "LONG_ARTICLE", "Executive Summary:",
+        "DUAL_COMBO_POST", "VOLATILITY_SHOCK_CARD", "TRADER_POLL",
+        "CHEAT_SHEET_ALPHA", "Executive Summary:", "Market Overview:",
     ):
         text = re.sub(rf"^{re.escape(label)}\s*:?\s*", "", text, flags=re.IGNORECASE)
 
+    # এআই-এর মুখস্থ গ্রিটিংস ফিল্টার
     text = re.sub(
         r"^(?:Hey|Hi|Hello|Yo|What's up|Greetings)\s+"
-        r"(?:guys|friends|traders|everyone|squad|fam|team|folks|Binance Square|crypto fam)"
+        r"(?:guys|friends|traders|everyone|squad|fam|team|folks|crypto fam)"
         r"(?:\s+on\s+Binance\s+Square)?[\s,!.\-—👋👀🔥]*",
         "",
         text,
@@ -251,16 +208,12 @@ def sanitize_human_post_text(raw_text: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\s+points\s+toward\b", "Momentum points toward", text)
+    # চার্টের রঙ নির্দেশকারী অপ্রয়োজনীয় বাক্য বাদ
+    text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\s+points\s+toward\b", "Momentum shifts toward", text)
     text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\b", "the 1H structure", text)
 
-    text = re.sub(
-        r",\s*the\s+(?:token|coin|asset)\s+that's\s+been\s+making\s+waves[^.!?\n]*[.!?]\s*",
-        " — ",
-        text,
-        flags=re.IGNORECASE,
-    )
-    text = re.sub(r"\b(?:Furthermore|Moreover|In conclusion|To summarize),?\s*", "", text, flags=re.IGNORECASE)
+    # কাঠখোট্টা ট্রানজিশন শব্দ বাদ
+    text = re.sub(r"\b(?:Furthermore|Moreover|In conclusion|To summarize|As we can see|It is worth noting),?\s*", "", text, flags=re.IGNORECASE)
 
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s+([,.:;!?])", r"\1\2", text)
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s*/\s*USDT", r"\1", text)
@@ -268,12 +221,6 @@ def sanitize_human_post_text(raw_text: str) -> str:
 
     text = text.replace("**", "").replace("__", "").replace("```", "").replace('"', "")
     text = re.sub(r"(?m)^#{1,4}\s*", "", text)
-
-    text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
-    text = re.sub(r"\bPrice\s+support\b", "price support", text)
-    text = re.sub(r"\babove\s+Price\b", "above price", text)
-    text = re.sub(r"\bBEARISH\b", "bearish", text)
-    text = re.sub(r"\bBULLISH\b", "bullish", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
@@ -869,8 +816,8 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str) -> Optional[s
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                "max_tokens": 175,
-                "temperature": 0.75,
+                "max_tokens": 160,
+                "temperature": 0.85,
             }).encode("utf-8")
             req = urllib.request.Request(
                 url, data=payload,
@@ -880,117 +827,155 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str) -> Optional[s
             with urllib.request.urlopen(req, timeout=18) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = ((data.get("result") or {}).get("response") or "").strip()
-                if 45 < len(text) < 750:
+                if 45 < len(text) < 700:
                     return sanitize_human_post_text(text)
         except Exception:
             continue
     return None
 
 
+def generate_matrix_fallback_text(
+    market_data: Dict[str, object],
+    persona: Dict[str, str],
+    visual_format: str,
+) -> str:
+    """জিরো-টেমপ্লেট ফলব্যাক: কোনো ফিক্সড স্ট্যাটিক লাইন ছাড়াই ডায়নামিকালি মানবীয় বাক্য জোড়া লাগায়"""
+    tag = market_data["cashtag"]
+    p = format_price(float(market_data["last_price"]))
+    sup = format_price(float(market_data["support"]))
+    res = format_price(float(market_data["resistance"]))
+    ema = format_price(float(market_data["ema20"]))
+    chg = float(market_data["change_24h"])
+    vol = f"${float(market_data['quote_vol_24h'])/1e6:,.1f}M"
+    is_bull = market_data["bias"] == "BULLISH"
+
+    if visual_format == "TRADER_POLL":
+        intros = [
+            f"{tag} is battling right at the {ema} pivot with {vol} in 24h turnover.",
+            f"Massive volume cluster forming on {tag} around {p}.",
+            f"Orderflow on {tag} is getting crowded near the {res if is_bull else sup} level.",
+        ]
+        poll_q = (
+            f"Where does {tag} close today?\n"
+            f"[A] Break above {res} cleanly\n"
+            f"[B] Flush down to {sup} liquidity\n"
+            f"[C] Choppy sideways bleed"
+        )
+        return f"{random.choice(intros)}\n\n{poll_q}"
+
+    if visual_format == "CHEAT_SHEET_ALPHA":
+        return (
+            f"1H TRADING RADAR: {tag} ({chg:+.2f}%)\n\n"
+            f"▸ Current Tape: {p}\n"
+            f"▸ Buyer Floor: {sup}\n"
+            f"▸ Seller Ceiling: {res}\n"
+            f"▸ Invalidation: Hourly close past {ema}\n\n"
+            f"Are you leaning long or waiting for the flush? Drop thoughts 👇"
+        )
+
+    # সাধারণ অ্যানালাইসিসের জন্য ন্যাচারাল সেন্টেন্স কম্বিনেশন
+    if is_bull:
+        hooks = [
+            f"Clean absorption on {tag} after defending the {sup} demand base ({chg:+.2f}%).",
+            f"Spot buyers stepped in aggressively on {tag} at {p}, soaking up the dip with {vol} volume.",
+            f"{tag} just held {sup} with strength while sellers failed to push lower.",
+        ]
+        middles = [
+            f"As long as 1H candles close above {ema}, the path of least resistance points toward {res}.",
+            f"Holding above {ema} keeps the momentum intact for a test of the {res} liquidity wall.",
+            f"If buyers maintain control over the {ema} zone, expect a breakout continuation toward {res}.",
+        ]
+        closes_q = [
+            f"Taking the {tag} breakout or waiting for a pullback? 👇",
+            f"Who is eyeing {res} before the session close? 👇",
+            f"Are bulls ready to blast through {res}? 👇",
+        ]
+    else:
+        hooks = [
+            f"Heavy seller exhaustion showing on {tag} around {p} ({chg:+.2f}%).",
+            f"Weak bounce attempts on {tag} are getting absorbed right below the {ema} level.",
+            f"Bears rejected {tag} near {res} on ${vol} turnover, shifting 1H structure downward.",
+        ]
+        middles = [
+            f"Until bulls reclaim {ema} on convincing volume, momentum targets the {sup} floor.",
+            f"Sustained rejection under {ema} leaves the door open for a stop-hunt into {sup}.",
+            f"Sellers are capping every minor push, favoring a liquidity sweep toward {sup}.",
+        ]
+        closes_q = [
+            f"Shorting down to {sup} or waiting for the sweep? 👇",
+            f"Does {sup} hold on {tag} or do we flush lower? 👇",
+            f"Playing the breakdown or staying patient on the sidelines? 👇",
+        ]
+
+    return f"{random.choice(hooks)}\n\n{random.choice(middles)}\n\n{random.choice(closes_q)}"
+
+
 def build_human_post_by_persona(
     market_data: Dict[str, object],
     session_info: Dict[str, object],
     persona: Dict[str, str],
+    visual_format: str,
 ) -> str:
     primary_tag = str(market_data["cashtag"])
     base_coin = str(market_data["base_coin"])
     companion_pool = [t for t in ["$BTC", "$ETH", "$SOL", "$BNB"] if t != primary_tag]
     secondary_tags = random.sample(companion_pool, 2)
     cashtag_footer = f"{primary_tag} {secondary_tags[0]} {secondary_tags[1]}"
+    tag_line = f"{cashtag_footer} #{base_coin} #Write2Earn #BinanceSquare"
 
     price_str = format_price(float(market_data["last_price"]))
     sup_str = format_price(float(market_data["support"]))
     res_str = format_price(float(market_data["resistance"]))
     target_str = format_price(float(market_data["target_price"]))
-    high_str = format_price(float(market_data["high_24h"]))
     ema20_str = format_price(float(market_data["ema20"]))
     chg = float(market_data["change_24h"])
-    rsi_val = float(market_data["rsi"])
-    funding_val = float(market_data["funding_pct"])
     vol_m = float(market_data["quote_vol_24h"]) / 1e6
     bias = str(market_data["bias"])
-    pid = persona["id"]
 
-    tag_line = f"{cashtag_footer} #{base_coin} #Write2Earn #BinanceSquare"
-
-    setup_thesis = (
-        f"bullish bounce setup targeting {target_str} resistance (as long as {sup_str} demand holds)"
-        if bias == "BULLISH"
-        else f"bearish rejection setup targeting a drop toward the {target_str} demand floor (capped below {ema20_str})"
-    )
-
-    system_prompt = (
-        f"You are an experienced crypto trader on Binance Square ({persona['name']}). "
-        "Write a short, punchy 4-to-5 sentence trading note (strictly 50 to 85 words MAX). "
-        "STRICT RULES: "
-        "1. NEVER start with 'Hey guys', 'Hey friends', or essay intros. "
-        "2. NEVER mention 'the red arrow' or 'the green arrow' in your text—talk purely about price action! "
-        "3. Treat Support and Resistance as price levels, and RSI as a momentum reading (never say 'if RSI holds as support'). "
-        f"4. Your trade thesis MUST be: {setup_thesis}. "
-        "5. NO Markdown asterisks (** or *). End with a 1-line question for traders. Do NOT include hashtags."
-    )
-
-    user_prompt = (
-        f"Coin: {primary_tag} trading at {price_str} ({chg:+.2f}% 24h, Vol ${vol_m:,.1f}M).\n"
-        f"Trade Thesis: {setup_thesis}.\n"
-        f"Price Levels: Support {sup_str}, Resistance {res_str}, 1H EMA20 {ema20_str}. Momentum: 1H RSI at {rsi_val:.1f}, Funding {funding_val:+.4f}%.\n"
-        f"Style: {persona['style']}\n"
-        f"Write the short 2-paragraph trader note now (no hashtags at the end):"
-    )
+    # এআই প্রম্পট - কন্টেন্ট ফরম্যাট অনুযায়ী সম্পূর্ণ গতিশীল
+    if visual_format == "TRADER_POLL":
+        system_prompt = (
+            "You are an active crypto trader on Binance Square. "
+            "Write a brief 1-sentence observation on price action, followed by a 3-choice community poll. "
+            "STRICT RULES: Do not use Markdown (**), no greetings, no hashtags. Under 40 words total."
+        )
+        user_prompt = (
+            f"Coin: {primary_tag} at {price_str} ({chg:+.2f}%). Support: {sup_str}, Resistance: {res_str}. "
+            "Output format:\n[1 sentence on orderflow]\n[Question]\n[A] ...\n[B] ...\n[C] ..."
+        )
+    elif visual_format == "CHEAT_SHEET_ALPHA":
+        system_prompt = (
+            "You are a disciplined floor trader. Write a clean, 4-bullet trade radar snapshot. "
+            "STRICT RULES: Use '▸ ' for bullets. No bold (**), no greetings, no hashtags. Under 50 words total."
+        )
+        user_prompt = (
+            f"Coin: {primary_tag} at {price_str}. Key levels: Sup {sup_str}, Res {res_str}, EMA20 {ema20_str}. Bias: {bias}. "
+            "Format:\n1H RADAR: [Coin]\n▸ Level 1\n▸ Level 2\n▸ Level 3\n▸ Question for traders"
+        )
+    else:
+        system_prompt = (
+            f"You are a professional crypto orderflow trader on Binance Square ({persona['name']}). "
+            f"Persona strategy: {persona['angle']}. "
+            "Write a punchy, ultra-realistic 3-sentence trading note (strictly 45 to 70 words). "
+            "STRICT RULES: "
+            "1. NEVER use 'Hey guys', 'In conclusion', 'Furthermore', or intro fluff. "
+            "2. NEVER mention 'chart arrows' or colors. Talk strictly about price levels, wicks, and invalidation. "
+            "3. NO Markdown bold asterisks (**). End with a short engaging question. NO hashtags."
+        )
+        user_prompt = (
+            f"Coin: {primary_tag} at {price_str} ({chg:+.2f}%, Vol ${vol_m:,.1f}M).\n"
+            f"Key Levels: Support {sup_str}, Resistance {res_str}, 1H EMA20 {ema20_str}. Bias: {bias} toward {target_str}.\n"
+            "Write the human trader note now:"
+        )
 
     cf_body = generate_text_cloudflare(system_prompt, user_prompt)
     if cf_body and primary_tag in cf_body:
         cf_body = re.sub(r"(?:\s*#[A-Za-z0-9_]+)+\s*$", "", cf_body).strip()
         return sanitize_human_post_text(f"{cf_body}\n\n{tag_line}")
 
-    if bias == "BEARISH":
-        if pid in ("URGENT_FAKE_PUMP_CALL", "BLUNT_REALIST_WARNING"):
-            body = (
-                f"{primary_tag} is showing heavy exhaustion near {price_str} ({chg:+.2f}%) — don't get trapped buying weak bounce wicks! 📉\n\n"
-                f"Sellers are defending the 1H EMA-20 ({ema20_str}) and rejecting every push toward {res_str}. "
-                f"As long as price stays capped under {ema20_str}, downside momentum points straight toward the {sup_str} liquidity floor.\n\n"
-                f"Are you shorting {primary_tag} toward {sup_str} or waiting on the sidelines? 👇"
-            )
-        elif pid == "CALM_INSTITUTIONAL_RANGE":
-            body = (
-                f"{primary_tag}\n"
-                f"In the short term, {primary_tag} faces sustained sell pressure at {price_str} ({chg:+.2f}%), trading below its 1H EMA-20 at {ema20_str}. "
-                f"Pay close attention to how buyers react as price approaches the {sup_str} support floor.\n\n"
-                f"Until bulls can reclaim {ema20_str} and break {res_str} on real volume, downside momentum favors a retest of {sup_str} alongside {secondary_tags[0]}.\n\n"
-                f"Does {sup_str} hold on {primary_tag} today, or do we break lower? 👇"
-            )
-        else:
-            body = (
-                f"Sellers remain in control on the {primary_tag} 1H tape at {price_str} ({chg:+.2f}% in 24h).\n\n"
-                f"After dropping from the {high_str} high on ${vol_m:,.1f}M volume, weak bounces are getting absorbed below {ema20_str}. "
-                f"I'm watching for a clean flush down into the {sup_str} demand zone before looking for any relief bounce.\n\n"
-                f"Riding {primary_tag} short to {sup_str} or waiting for the dip? 👇"
-            )
-    else:
-        if pid in ("URGENT_FAKE_PUMP_CALL", "MEME_HYPE_MOMENTUM"):
-            body = (
-                f"{primary_tag} buyers just stepped in strong at {price_str} ({chg:+.2f}%)! 🚀\n\n"
-                f"Bears tried to break the {sup_str} floor, but spot demand absorbed the dip with ${vol_m:,.1f}M in 24h turnover. "
-                f"Holding above {ema20_str} opens a clean 1H run straight toward the {res_str} breakout target.\n\n"
-                f"Who else is longing {primary_tag} for the {res_str} breakout? Drop your target! 👇"
-            )
-        elif pid == "CALM_INSTITUTIONAL_RANGE":
-            body = (
-                f"{primary_tag}\n"
-                f"In the short term, {primary_tag} is building bullish structure at {price_str} ({chg:+.2f}%) after defending the {sup_str} demand zone. "
-                f"Orderflow during the {session_info['name']} favors buyers as long as 1H candles hold {sup_str}.\n\n"
-                f"A decisive push through {ema20_str} targets the {res_str} resistance wall next alongside {secondary_tags[0]} and {secondary_tags[1]}.\n\n"
-                f"Do we see {primary_tag} clear {res_str} in this session? 👇"
-            )
-        else:
-            body = (
-                f"Clean 1H bounce structure forming on {primary_tag} at {price_str} ({chg:+.2f}%)! ⚡\n\n"
-                f"Buyers defended the {sup_str} support zone cleanly while 1H RSI sits at {rsi_val:.1f} with perp funding at {funding_val:+.4f}%. "
-                f"As long as {sup_str} holds, my upside target remains the {res_str} liquidity wall.\n\n"
-                f"Are you longing {primary_tag} here or waiting for {res_str} to flip? 👇"
-            )
-
-    return sanitize_human_post_text(f"{body}\n\n{tag_line}")
+    # ফলব্যাক ম্যাট্রিক্স থেকে স্বয়ংক্রিয় বৈচিত্র্যময় টেক্সট
+    fallback_body = generate_matrix_fallback_text(market_data, persona, visual_format)
+    return sanitize_human_post_text(f"{fallback_body}\n\n{tag_line}")
 
 
 def get_current_global_session(utc_now: Optional[datetime.datetime] = None) -> Dict[str, object]:
@@ -1075,6 +1060,8 @@ def broadcast_to_telegram(
     except Exception as exc:
         print(f"[WARN] Telegram sync skipped: {exc}")
         return False
+
+
 def broadcast_to_webhook(
     post_text: str,
     image_url: Optional[str] = None,
@@ -1089,7 +1076,7 @@ def broadcast_to_webhook(
     link_url = (
         square_post_url
         if (square_post_url and "unavailable" not in str(square_post_url))
-        else "https://www.binance.com/en/square/profile/alphapulse_io"
+        else "[https://www.binance.com/en/square/profile/alphapulse_io](https://www.binance.com/en/square/profile/alphapulse_io)"
     )
 
     payload = {
@@ -1114,6 +1101,7 @@ def broadcast_to_webhook(
     except Exception as exc:
         print(f"[WARN] Webhook request error: {exc}")
     return False
+
 
 def publish_to_binance_square(
     post_text: str,
@@ -1194,13 +1182,11 @@ def run_single_cycle(
 
     avail_personas = [p for p in HUMAN_PERSONAS if p["id"] not in memory["recent_personas"]]
     persona = random.choice(avail_personas or HUMAN_PERSONAS)
-    if visual_format == "PURE_TEXT_ALPHA":
-        persona = random.choice([p for p in HUMAN_PERSONAS if p["id"] in ("CALM_INSTITUTIONAL_RANGE", "SHORT_PUNCHY_TAPE_NOTE")])
 
     market_data = scan_trending_market_candidate(memory["recent_coins"])
     base_coin = str(market_data["base_coin"])
 
-    post_text = build_human_post_by_persona(market_data, session_info, persona)
+    post_text = build_human_post_by_persona(market_data, session_info, persona, visual_format)
 
     image_list: List[str] = []
     if visual_format == "MOBILE_ARROW_CHART":
@@ -1226,6 +1212,7 @@ def run_single_cycle(
         img2 = generate_cloudflare_reaction_visual(base_coin, str(market_data["bias"]), str(Path(output_dir) / fname2))
         if img2:
             image_list.append(img2)
+    # TRADER_POLL ও CHEAT_SHEET_ALPHA ফরম্যাটে ক্লিন টেক্সট অগ্রাধিকার পায়
 
     pub_result = publish_to_binance_square(
         post_text=post_text,
@@ -1240,21 +1227,26 @@ def run_single_cycle(
         image_path=first_image,
         square_post_url=pub_result.get("post_url"),
     )
+
     extracted_image_url = None
+    extracted_post_url = pub_result.get("post_url") or pub_result.get("link") or pub_result.get("url")
     if isinstance(pub_result, dict):
         stdout_content = pub_result.get("stdout", "")
         for line in stdout_content.splitlines():
-            if "Ready:" in line and "http" in line:
+            if "Ready:" in line and "http" in line and not extracted_image_url:
                 extracted_image_url = line.split("Ready:", 1)[1].strip()
-                break
+            if "binance.com" in line and "/square/post/" in line:
+                m_url = re.search(r"(https?://[^\s\"'>]+)", line)
+                if m_url:
+                    extracted_post_url = m_url.group(1).strip()
 
     x_status = broadcast_to_webhook(
         post_text=post_text,
         image_url=extracted_image_url,
-        square_post_url=pub_result.get("link") or pub_result.get("url"),
+        square_post_url=extracted_post_url,
         coin=base_coin,
     )
-            
+
     save_bot_memory(memory_file, memory, base_coin, persona["id"], visual_format)
 
     return {
@@ -1273,14 +1265,14 @@ def run_single_cycle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Binance Square V3.5 Viral Human Auto-Bot")
+    parser = argparse.ArgumentParser(description="Binance Square V4.0 Viral Human Auto-Bot")
     parser.add_argument("--once", action="store_true", help="Run a single post cycle.")
     parser.add_argument("--dry-run", action="store_true", help="Preview locally without publishing.")
     parser.add_argument(
         "--format",
         choices=[
-            "MOBILE_ARROW_CHART", "PRO_SETUP_BOX_CHART", "PURE_TEXT_ALPHA",
-            "DUAL_COMBO_POST", "VOLATILITY_SHOCK_CARD",
+            "MOBILE_ARROW_CHART", "PRO_SETUP_BOX_CHART",
+            "VOLATILITY_SHOCK_CARD", "TRADER_POLL", "CHEAT_SHEET_ALPHA", "DUAL_COMBO_POST",
         ],
         help="Force a specific visual format.",
     )
@@ -1307,10 +1299,11 @@ def main() -> None:
         print("-" * 78)
         print(f"[STATUS]    {summary['publish_result']}")
         print(f"[TELEGRAM]  Synced: {summary['telegram_synced']}")
+        print(f"[WEBHOOK]   Synced: {summary['webhook_synced']}")
         print("=" * 78)
         return
 
-    print("[START] Launching V3.5 Global Peak-Session Scheduler...")
+    print("[START] Launching V4.0 Peak-Session Engagement Scheduler...")
     while True:
         try:
             summary = run_single_cycle(
@@ -1328,8 +1321,8 @@ def main() -> None:
 
         session = get_current_global_session()
         base_wait = int(session["interval_minutes"]) * 60
-        jitter_seconds = random.randint(-420, 420)
-        sleep_seconds = max(2400, base_wait + jitter_seconds)
+        jitter_seconds = random.randint(-600, 600)  # ±10 মিনিট অ্যান্টি-বট জ্যামিং
+        sleep_seconds = max(5400, base_wait + jitter_seconds)  # কমপক্ষে ১.৫ থেকে ৩.৫ ঘণ্টা ব্যবধান
         print(f"[SCHEDULER] {session['name']} | Next post in {sleep_seconds // 60}m...")
         time.sleep(sleep_seconds)
 
