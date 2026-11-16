@@ -1,20 +1,23 @@
-name: Binance Square V3 Viral Human Write-to-Earn Bot
+name: Binance Square V4 Viral Human Write-to-Earn Bot
 
 on:
   schedule:
-    # 1. US & London Overlap Peak (13:00 - 21:00 UTC) -> Most active global trading hours (7 posts)
-    - cron: '12 13,14,15,17,18,19,20 * * *'
-    # 2. London & European Open (08:00 - 12:00 UTC) -> High volume breakout hours (3 posts)
-    - cron: '25 8,10,12 * * *'
-    # 3. Asian Whales Session (00:00 - 07:00 UTC) -> Singapore/Tokyo/Korea peak (4 posts)
-    - cron: '40 0,2,4,6 * * *'
-    # 4. Late US / Daily Candle Close (22:00 UTC) -> Daily close recap (1 post)
-    - cron: '18 22 * * *'
+    # ১. Asian Session Peak (02:30 UTC -> সকাল ০৮:৩০ বাংলাদেশ সময়) - 1 post
+    - cron: '30 2 * * *'
+    # ২. London & European Open (08:15 UTC -> দুপুর ০২:১৫ বাংলাদেশ সময়) - 1 post
+    - cron: '15 8 * * *'
+    # ৩. Pre-US / London Mid-Session (11:45 UTC -> বিকাল ০৫:৪৫ বাংলাদেশ সময়) - 1 post
+    - cron: '45 11 * * *'
+    # ৪. US & London Overlap Peak (14:20 & 17:35 UTC -> রাত ০৮:২০ ও রাত ১১:৩৫ বাংলাদেশ সময়) - 2 posts
+    - cron: '20 14 * * *'
+    - cron: '35 17 * * *'
+    # ৫. Late US / Daily Candle Close (21:10 UTC -> ভোর ০৩:১০ বাংলাদেশ সময়) - 1 post
+    - cron: '10 21 * * *'
 
   workflow_dispatch:
     inputs:
       force_format:
-        description: 'Optional format (MOBILE_ARROW_CHART, PRO_SETUP_BOX_CHART, PURE_TEXT_ALPHA, DUAL_COMBO_POST, VOLATILITY_SHOCK_CARD)'
+        description: 'Optional format (MOBILE_ARROW_CHART, PRO_SETUP_BOX_CHART, VOLATILITY_SHOCK_CARD, TRADER_POLL, CHEAT_SHEET_ALPHA, DUAL_COMBO_POST)'
         required: false
         default: ''
 
@@ -80,9 +83,6 @@ jobs:
           FORCE_FORMAT: ${{ github.event.inputs.force_format }}
         run: |
           SCRIPT_NAME="binance_square_autobot.py"
-          if [ -f "binance_square_autobot_telegram.py" ]; then
-            SCRIPT_NAME="binance_square_autobot_telegram.py"
-          fi
           if [ -n "$FORCE_FORMAT" ]; then
             python "$SCRIPT_NAME" --once --square-skill-dir square-post --format "$FORCE_FORMAT"
           else
