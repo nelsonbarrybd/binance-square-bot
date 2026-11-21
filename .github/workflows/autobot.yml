@@ -1,23 +1,20 @@
-name: Binance Square V4 Viral Human Write-to-Earn Bot
+name: Binance Square V5 High-Reach Narrative Bot
 
 on:
   schedule:
-    # ১. Asian Session Peak (02:30 UTC -> সকাল ০৮:৩০ বাংলাদেশ সময়) - 1 post
-    - cron: '30 2 * * *'
-    # ২. London & European Open (08:15 UTC -> দুপুর ০২:১৫ বাংলাদেশ সময়) - 1 post
-    - cron: '15 8 * * *'
-    # ৩. Pre-US / London Mid-Session (11:45 UTC -> বিকাল ০৫:৪৫ বাংলাদেশ সময়) - 1 post
-    - cron: '45 11 * * *'
-    # ৪. US & London Overlap Peak (14:20 & 17:35 UTC -> রাত ০৮:২০ ও রাত ১১:৩৫ বাংলাদেশ সময়) - 2 posts
-    - cron: '20 14 * * *'
-    - cron: '35 17 * * *'
-    # ৫. Late US / Daily Candle Close (21:10 UTC -> ভোর ০৩:১০ বাংলাদেশ সময়) - 1 post
-    - cron: '10 21 * * *'
+    # ১. Asian Session Momentum (02:20 UTC -> সকাল ০৮:২০ BST)
+    - cron: '20 2 * * *'
+    # ২. London Open Liquidity (08:35 UTC -> দুপুর ০২:৩৫ BST)
+    - cron: '35 8 * * *'
+    # ৩. US & London Overlap Peak (14:40 UTC -> রাত ০৮:৪০ BST)
+    - cron: '40 14 * * *'
+    # ৪. Late US / Daily Close Setup (20:50 UTC -> রাত ০২:৫০ BST)
+    - cron: '50 20 * * *'
 
   workflow_dispatch:
     inputs:
       force_format:
-        description: 'Optional format (MOBILE_ARROW_CHART, PRO_SETUP_BOX_CHART, VOLATILITY_SHOCK_CARD, TRADER_POLL, CHEAT_SHEET_ALPHA, DUAL_COMBO_POST)'
+        description: 'Optional pillar (BREAKING_NEWS_TAKE, HIGH_CONVICTION_CHART, TRADING_PSYCHOLOGY, COMMUNITY_DEBATE)'
         required: false
         default: ''
 
@@ -28,10 +25,17 @@ concurrency:
 jobs:
   publish-square-post:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Anti-Bot Random Timing Jitter (Scheduled Runs Only)
+        if: github.event_name == 'schedule'
+        run: |
+          DELAY=$((RANDOM % 480))
+          echo "Waiting ${DELAY}s for natural human posting cadence..."
+          sleep "$DELAY"
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -47,27 +51,26 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: bot_memory.json
-          key: square-bot-memory-${{ github.run_id }}
+          key: square-bot-memory-v5-${{ github.run_id }}
           restore-keys: |
-            square-bot-memory-
+            square-bot-memory-v5-
 
       - name: Install Python Chart Libraries
         run: |
           python -m pip install --upgrade pip
-          pip install matplotlib numpy requests requests_oauthlib
+          pip install matplotlib numpy
 
       - name: Download Official Binance Square Skill Scripts
         run: |
           mkdir -p square-post
-          GH_HOST="https://github.com"
+          GH_HOST="[https://github.com](https://github.com)"
           REPO_PATH="binance/binance-skills-hub/archive/refs/heads/main.zip"
           curl -sL "${GH_HOST}/${REPO_PATH}" -o hub.zip
           unzip -q hub.zip
           cp -r binance-skills-hub-main/skills/binance/square-post/* square-post/
           rm -rf hub.zip binance-skills-hub-main
-          ls -la square-post/scripts
 
-      - name: Generate & Publish Viral Human Post
+      - name: Generate & Publish High-Reach Post
         env:
           BINANCE_SQUARE_OPENAPI_KEY: ${{ secrets.BINANCE_SQUARE_OPENAPI_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -75,18 +78,13 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-          X_API_KEY: ${{ secrets.X_API_KEY }}
-          X_API_SECRET: ${{ secrets.X_API_SECRET }}
-          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
           SQUARE_SKILL_DIR: square-post
           FORCE_FORMAT: ${{ github.event.inputs.force_format }}
         run: |
-          SCRIPT_NAME="binance_square_autobot.py"
           if [ -n "$FORCE_FORMAT" ]; then
-            python "$SCRIPT_NAME" --once --square-skill-dir square-post --format "$FORCE_FORMAT"
+            python binance_square_autobot.py --once --square-skill-dir square-post --format "$FORCE_FORMAT"
           else
-            python "$SCRIPT_NAME" --once --square-skill-dir square-post
+            python binance_square_autobot.py --once --square-skill-dir square-post
           fi
 
       - name: Save Updated Bot Memory Cache
@@ -94,4 +92,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: bot_memory.json
-          key: square-bot-memory-${{ github.run_id }}
+          key: square-bot-memory-v5-${{ github.run_id }}
