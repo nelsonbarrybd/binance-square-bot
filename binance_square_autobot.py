@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V5.0
-(LIVE NEWS + 40-30-20-10 NARRATIVE ENGINE + MULTI-TIMEFRAME + ZERO CASHTAG SPAM)
+BINANCE SQUARE WRITE-TO-EARN AUTO-BOT V5.1
+(LIVE NEWS + 40-30-20-10 NARRATIVE ENGINE + CLEAN HUMAN SANITIZER + MULTI-TIMEFRAME)
 File Name: binance_square_autobot.py
 """
 
@@ -104,6 +104,15 @@ NEWS_COIN_KEYWORDS = {
     "aptos": "APT", "injective": "INJ", "celestia": "TIA",
 }
 
+COIN_DISPLAY_NAMES = {
+    "BTC": "Bitcoin", "ETH": "Ethereum", "SOL": "Solana", "BNB": "BNB",
+    "XRP": "Ripple", "DOGE": "Dogecoin", "ADA": "Cardano", "AVAX": "Avalanche",
+    "LINK": "Chainlink", "SHIB": "Shiba Inu", "TON": "Toncoin", "ARB": "Arbitrum",
+    "OP": "Optimism", "UNI": "Uniswap", "LTC": "Litecoin", "DOT": "Polkadot",
+    "APT": "Aptos", "INJ": "Injective", "TIA": "Celestia", "TAO": "Bittensor",
+    "ENA": "Ethena", "ONDO": "Ondo", "SUI": "Sui", "NEAR": "Near",
+}
+
 COIN_SEO_SLUGS = {
     "BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "bnb",
     "XRP": "xrp", "DOGE": "dogecoin", "PEPE": "pepe-coin", "SUI": "sui",
@@ -116,7 +125,6 @@ COIN_SEO_SLUGS = {
     "ONDO": "ondo-finance", "PENDLE": "pendle", "JUP": "jupiter",
 }
 
-# 40-30-20-10 Weighted Content Mix
 PILLAR_WEIGHTS = [
     ("BREAKING_NEWS_TAKE", 40),
     ("HIGH_CONVICTION_CHART", 30),
@@ -216,12 +224,26 @@ def choose_next_pillar(recent_pillars: List[str], force_format: Optional[str] = 
 
 def sanitize_human_post_text(raw_text: str) -> str:
     text = raw_text.strip()
-    for label in (
-        "BREAKING_NEWS_TAKE", "HIGH_CONVICTION_CHART", "TRADING_PSYCHOLOGY",
-        "COMMUNITY_DEBATE", "Headline:", "Post:", "Analysis:", "Hot Take:",
-    ):
-        text = re.sub(rf"^{re.escape(label)}\s*:?\s*", "", text, flags=re.IGNORECASE)
 
+    # ১. মার্কডাউন বুলেটকে আগে ▸ চিহ্নে রূপান্তর (সিঙ্গেল * মোছার আগে)
+    text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
+
+    # ২. শুধু মার্কডাউন হেডিং (যার পরে স্পেস আছে) মুছবে, #BTC হ্যাশট্যাগ অক্ষত থাকবে
+    text = re.sub(r"(?m)^#{1,4}\s+", "", text)
+
+    # ৩. এআই-এর লিক হওয়া সব স্ট্রাকচারাল লেবেল (Bold Hook:, Paragraph 1:, Line 1: ইত্যাদি) মোছা
+    label_pattern = (
+        r"(?mi)^\s*(?:\*{0,2})?(?:"
+        r"breaking_news_take|high_conviction_chart|trading_psychology|community_debate|"
+        r"bold\s+hook|hook|opening\s+hook|headline|title|post|analysis|hot\s+take|"
+        r"line\s*\d+|paragraph\s*\d+|para\s*\d+|section\s*\d+|body|"
+        r"final\s+line|closing\s+question|question|takeaway|verdict|summary|intro(?:duction)?"
+        r")(?:\*{0,2})?\s*[:\-—]\s*"
+    )
+    for _ in range(2):
+        text = re.sub(label_pattern, "", text)
+
+    # ৪. রোবোটিক শুভেচ্ছা ও ট্রানজিশন শব্দ বাদ
     text = re.sub(
         r"^(?:Hey|Hi|Hello|Yo|What's up|Greetings)\s+"
         r"(?:guys|friends|traders|everyone|squad|fam|team|folks|crypto fam)"
@@ -237,13 +259,28 @@ def sanitize_human_post_text(raw_text: str) -> str:
         flags=re.IGNORECASE,
     )
     text = re.sub(r"\b[Tt]he\s+(?:red|green)\s+(?:chart\s+)?arrow\b", "price structure", text)
+
+    # ৫. সব মার্কডাউন অ্যাস্টেরিস্ক (*, **), আন্ডারস্কোর, ব্যাকটিক ও কোটেশন ক্লিন করা
+    text = text.replace("**", "").replace("__", "").replace("```", "").replace("`", "").replace("*", "").replace('"', "")
+
+    # ৬. ক্যাশট্যাগ ফরম্যাটিং ক্লিনআপ
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s+([,.:;!?])", r"\1\2", text)
     text = re.sub(r"(\$[A-Z0-9]{2,10})\s*/\s*USDT", r"\1", text)
-    text = text.replace("**", "").replace("__", "").replace("```", "").replace('"', "")
-    text = re.sub(r"(?m)^#{1,4}\s*", "", text)
-    text = re.sub(r"(?m)^\s*[\*\-]\s+", "▸ ", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def inject_cashtag_naturally(text: str, base_coin: str) -> str:
+    """পোস্টে $COIN না থাকলে কয়েনের আসল নামের জায়গায় ন্যাচারালি $COIN বসায়।"""
+    tag = f"${base_coin.upper()}"
+    if tag in text:
+        return text
+    full_name = COIN_DISPLAY_NAMES.get(base_coin.upper())
+    if full_name and re.search(rf"\b{re.escape(full_name)}\b", text, flags=re.IGNORECASE):
+        return re.sub(rf"\b{re.escape(full_name)}\b", tag, text, count=1, flags=re.IGNORECASE)
+    if re.search(rf"\b{re.escape(base_coin)}\b", text, flags=re.IGNORECASE):
+        return re.sub(rf"\b{re.escape(base_coin)}\b", tag, text, count=1, flags=re.IGNORECASE)
+    return f"{text}\n\nWatching {tag} closely here."
 
 
 def build_seo_image_filename(base_coin: str, pillar: str, suffix: str = "visual") -> str:
@@ -431,7 +468,6 @@ def scan_high_conviction_chart_candidate(
     recent_coins: List[str],
     timeframe: str = "4h",
 ) -> Dict[str, object]:
-    """শুধুমাত্র আসল ভলিউম ও উল্লেখযোগ্য মুভমেন্ট থাকা কয়েন নির্বাচন করে।"""
     spot_tickers = fetch_binance_spot_json("/api/v3/ticker/24hr")
     futures_tickers = http_get_json(f"{BINANCE_FUTURES_BASE}/fapi/v1/ticker/24hr")
     funding_list = http_get_json(f"{BINANCE_FUTURES_BASE}/fapi/v1/premiumIndex")
@@ -567,7 +603,6 @@ def generate_news_editorial_card(
     coin_snap: Dict[str, object],
     output_path: str,
 ) -> str:
-    """ব্রেকিং নিউজের জন্য ক্লিন এডিটোরিয়াল ডার্ক-মোড ভিজ্যুয়াল কার্ড।"""
     bg_dark = "#0B0E11"
     card_bg = "#141821"
     gold = "#F0B90B"
@@ -858,7 +893,7 @@ def generate_mobile_arrow_chart(
     return str(out_file.resolve())
 
 
-def generate_text_cloudflare(system_prompt: str, user_prompt: str, max_tokens: int = 280) -> Optional[str]:
+def generate_text_cloudflare(system_prompt: str, user_prompt: str, max_tokens: int = 450) -> Optional[str]:
     acc_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
     token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
     if not (acc_id and token):
@@ -872,17 +907,17 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str, max_tokens: i
                     {"role": "user", "content": user_prompt},
                 ],
                 "max_tokens": max_tokens,
-                "temperature": 0.85,
+                "temperature": 0.80,
             }).encode("utf-8")
             req = urllib.request.Request(
                 url, data=payload,
                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=22) as resp:
+            with urllib.request.urlopen(req, timeout=25) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = ((data.get("result") or {}).get("response") or "").strip()
-                if 60 < len(text) < 1200:
+                if 60 < len(text) < 1600:
                     return sanitize_human_post_text(text)
         except Exception:
             continue
@@ -890,7 +925,6 @@ def generate_text_cloudflare(system_prompt: str, user_prompt: str, max_tokens: i
 
 
 def build_clean_footer(base_coin: str) -> str:
-    """কোনো ক্যাশট্যাগ স্প্যামিং ছাড়া ন্যাচারাল ফুটার (শুধু প্রাসঙ্গিক ১টি ট্যাগ)।"""
     if random.random() < 0.25:
         return f"#{base_coin} #Crypto"
     return f"#{base_coin}"
@@ -903,34 +937,33 @@ def build_news_hot_take_post(news_item: Dict[str, str], coin_snap: Dict[str, obj
     chg = float(coin_snap["change_24h"])
 
     system_prompt = (
-        "You are a sharp, independent crypto analyst writing on Binance Square. "
-        "Write an engaging 110-to-150 word mini-breakdown reacting to a breaking crypto news headline. "
-        "STRUCTURE:\n"
-        "Line 1: A bold, scroll-stopping contrarian or urgent 1-sentence hook (mention the cashtag naturally).\n"
-        "Paragraph 2: Summarize what just happened and why most retail traders are misreading it.\n"
-        "Paragraph 3: Explain the real market impact on liquidity/positioning using the live price.\n"
-        "Final line: A polarizing question that forces traders to pick a side in the comments.\n"
-        "STRICT RULES: Zero greetings ('Hey guys'), zero markdown asterisks (**), zero hashtags, zero extra unrelated coin tags."
+        "You are a sharp crypto market analyst posting directly on Binance Square. "
+        "Write a clean, ready-to-publish post of 95 to 130 words reacting to the given news. "
+        "Start immediately with one punchy observation sentence that includes the cashtag naturally. "
+        "Follow with two short paragraphs explaining what just happened, why retail traders might be misreading it, "
+        "and how live price action reflects liquidity positioning. End with a single short question for comments. "
+        "CRITICAL RULES: Output ONLY the final post text. NEVER write labels like 'Hook:', 'Paragraph 1:', 'Paragraph 2:', or 'Question:'. "
+        "NEVER use asterisks (* or **), markdown formatting, greetings, or hashtags. "
+        "Stick strictly to the facts provided in the headline and context—never invent extra stories."
     )
     user_prompt = (
         f"News Headline ({news_item['source']}): {news_item['title']}\n"
         f"Context: {news_item['summary']}\n"
-        f"Live Market Data: {tag} is trading at {p_str} ({chg:+.2f}% 24h).\n"
-        "Write the authentic human breakdown now:"
+        f"Live Market Data: {tag} is currently trading at {p_str} ({chg:+.2f}% in 24h).\n"
+        "Write the final post now:"
     )
 
-    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=290)
+    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=450)
     if cf_text:
         cf_text = re.sub(r"(?:\s*#[A-Za-z0-9_]+)+\s*$", "", cf_text).strip()
-        if tag not in cf_text:
-            cf_text = f"{tag} — {cf_text}"
+        cf_text = inject_cashtag_naturally(cf_text, base_coin)
         return sanitize_human_post_text(f"{cf_text}\n\n{build_clean_footer(base_coin)}")
 
     fallback = (
-        f"Most traders are scrolling past this {tag} headline — and that is usually when the real move starts.\n\n"
+        f"Most traders are scrolling past this {tag} headline — and that is usually when positioning starts shifting.\n\n"
         f"{news_item['title']}.\n\n"
-        f"Right now {tag} sits at {p_str} ({chg:+.2f}% in 24h). Headlines like this rarely move price in the first 15 minutes; "
-        f"smart money uses initial retail confusion to fill spot orders while leverage gets shaken out on both sides.\n\n"
+        f"Right now {tag} sits at {p_str} ({chg:+.2f}% in 24h). Headlines like this rarely move price in a straight line; "
+        f"smart money often uses the initial confusion to absorb spot liquidity while leverage gets shaken out.\n\n"
         f"Are you positioning early on {tag} here, or do you think this news is already priced in?"
     )
     return sanitize_human_post_text(f"{fallback}\n\n{build_clean_footer(base_coin)}")
@@ -950,24 +983,24 @@ def build_chart_conviction_post(market_data: Dict[str, object], session_info: Di
     bias = str(market_data["bias"])
 
     system_prompt = (
-        "You are an experienced institutional crypto swing trader on Binance Square. "
-        "Write a crisp, high-value 90-to-130 word breakdown of a live chart setup. "
-        "Include: 1) Scroll-stopping first line, 2) Exact invalidation level and why chasing mid-range is a trap, "
-        "3) Key liquidity target, 4) One direct question for traders. "
-        "STRICT RULES: Mention ONLY the single given cashtag. No other coins. No markdown (**), no 'Hey guys', no hashtags, never say 'the arrow'."
+        "You are an experienced crypto swing trader posting directly on Binance Square. "
+        "Write a crisp, ready-to-publish 85 to 120 word chart breakdown. "
+        "Open with a sharp first sentence mentioning the cashtag. Then lay out the exact invalidation level, "
+        "why chasing mid-range is a trap, and the next liquidity target. End with one short question. "
+        "CRITICAL RULES: Output ONLY the final post text. NEVER write labels like 'Hook:', 'Paragraph 1:', or 'Setup:'. "
+        "Mention ONLY the single given cashtag. NEVER use asterisks (* or **), greetings, hashtags, or phrases like 'the arrow'."
     )
     user_prompt = (
         f"Asset: {tag} ({tf} Timeframe) at {p_str} ({chg:+.2f}% 24h, Vol ${vol_m:,.1f}M).\n"
         f"Key Levels: Demand {sup}, Supply {res}, {tf} EMA20 {ema}, Funding {funding:+.4f}%.\n"
         f"Bias: {bias}. Session: {session_info['name']}.\n"
-        "Write the authentic trader analysis:"
+        "Write the final post now:"
     )
 
-    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=260)
+    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=420)
     if cf_text:
         cf_text = re.sub(r"(?:\s*#[A-Za-z0-9_]+)+\s*$", "", cf_text).strip()
-        if tag not in cf_text:
-            cf_text = f"{tag} {tf} watch: {cf_text}"
+        cf_text = inject_cashtag_naturally(cf_text, base_coin)
         return sanitize_human_post_text(f"{cf_text}\n\n{build_clean_footer(base_coin)}")
 
     if bias == "BULLISH":
@@ -977,7 +1010,7 @@ def build_chart_conviction_post(market_data: Dict[str, object], session_info: Di
             f"▸ Trend Pivot ({tf} EMA20): {ema}\n"
             f"▸ Upside Liquidity: {res}\n\n"
             f"Chasing green candles mid-range is where late longs get trapped. As long as {tf} candles hold above {sup}, "
-            f"buyers keep control for a run into {res}. A close back under {sup} invalidates the whole idea.\n\n"
+            f"buyers keep control for a run into {res}. A close back under {sup} invalidates the setup.\n\n"
             f"Are you already positioned in {tag}, or waiting for a clean retest first?"
         )
     else:
@@ -998,34 +1031,31 @@ def build_psychology_post(topic_title: str, topic_core: str, btc_snap: Dict[str,
     btc_chg = float(btc_snap["change_24h"])
 
     system_prompt = (
-        "You are a veteran crypto trader sharing raw, hard-earned trading psychology on Binance Square. "
-        "Write a high-dwell-time 120-to-160 word post that makes traders stop scrolling and reflect. "
-        "STRUCTURE:\n"
-        "Line 1: A blunt, punchy hook statement.\n"
-        "Body: 3 short bullet points (use '▸ ') or 2 crisp paragraphs explaining the trap and the exact fix.\n"
-        "Tie it lightly to current $BTC market action so it feels live and timely.\n"
-        "Final line: Ask traders to share their toughest lesson in the comments.\n"
-        "STRICT RULES: No markdown asterisks (**), no 'Hey traders', no generic motivational clichés, no hashtags."
+        "You are a veteran crypto trader sharing raw, hard-earned trading psychology directly on Binance Square. "
+        "Write a clean, ready-to-publish 100 to 140 word post. "
+        "Start with a blunt one-sentence hook, follow with two short paragraphs or three '▸ ' bullets explaining the psychological trap and exact fix, "
+        "tie it naturally to live $BTC price action, and finish with a direct question for traders. "
+        "CRITICAL RULES: Output ONLY the final post text. NEVER write labels like 'Hook:', 'Body:', or 'Paragraph 1:'. "
+        "NEVER use asterisks (* or **), greetings, generic clichés, or hashtags."
     )
     user_prompt = (
-        f"Core Topic: {topic_title}\n"
-        f"Insight: {topic_core}\n"
-        f"Live Context: $BTC is currently around {btc_p} ({btc_chg:+.2f}% 24h).\n"
-        "Write the raw human trader post:"
+        f"Topic: {topic_title}\n"
+        f"Core Insight: {topic_core}\n"
+        f"Live Context: $BTC is around {btc_p} ({btc_chg:+.2f}% 24h).\n"
+        "Write the final post now:"
     )
 
-    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=300)
+    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=450)
     if cf_text:
         cf_text = re.sub(r"(?:\s*#[A-Za-z0-9_]+)+\s*$", "", cf_text).strip()
-        if "$BTC" not in cf_text:
-            cf_text = f"{cf_text}\n\n(Watching $BTC around {btc_p} right now — discipline beats prediction every cycle.)"
+        cf_text = inject_cashtag_naturally(cf_text, "BTC")
         return sanitize_human_post_text(f"{cf_text}\n\n#TradingPsychology #BTC")
 
     fallback = (
         f"{topic_title}.\n\n"
         f"{topic_core}\n\n"
         f"With $BTC hovering near {btc_p} ({btc_chg:+.2f}%), this is the exact kind of tape where impatient accounts bleed out:\n"
-        f"▸ Define your invalidation BEFORE you click buy or sell.\n"
+        f"▸ Define your invalidation before clicking buy or sell.\n"
         f"▸ Size small enough that a stop-out feels boring, not personal.\n"
         f"▸ Treat cash as an active position when structure is unclear.\n\n"
         f"What is the one trading habit that cost you the most money before you finally fixed it?"
@@ -1042,21 +1072,21 @@ def build_community_debate_post(market_data: Dict[str, object]) -> str:
     chg = float(market_data["change_24h"])
 
     system_prompt = (
-        "You are a crypto trader sparking a sharp debate on Binance Square. "
-        "Write a tight 45-to-65 word polarizing post presenting the exact Bull vs Bear battle on a coin, "
-        "ending with a 3-choice vote ([A], [B], [C]) so readers comment their letter. "
-        "STRICT RULES: Use ONLY the single given cashtag. No markdown (**), no greetings, no hashtags."
+        "You are a crypto trader sparking a sharp debate directly on Binance Square. "
+        "Write a tight 45 to 65 word post describing the live Bull vs Bear battle on the given coin, "
+        "ending with a 3-choice vote ([A], [B], [C]) so readers comment their choice. "
+        "CRITICAL RULES: Output ONLY the final post text. NEVER write labels like 'Hook:' or 'Question:'. "
+        "Use ONLY the single given cashtag. NEVER use asterisks (* or **), greetings, or hashtags."
     )
     user_prompt = (
         f"Coin: {tag} at {p_str} ({chg:+.2f}% 24h). Support {sup}, Resistance {res}.\n"
-        "Format:\n[1 punchy sentence on the current battle]\n\n[Short question]\n[A] Bull case\n[B] Bear case\n[C] Trap/Sideways"
+        "Write one punchy opening sentence, a short question, and [A], [B], [C] choices:"
     )
 
-    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=180)
+    cf_text = generate_text_cloudflare(system_prompt, user_prompt, max_tokens=260)
     if cf_text:
         cf_text = re.sub(r"(?:\s*#[A-Za-z0-9_]+)+\s*$", "", cf_text).strip()
-        if tag not in cf_text:
-            cf_text = f"{tag} battleground: {cf_text}"
+        cf_text = inject_cashtag_naturally(cf_text, base_coin)
         return sanitize_human_post_text(f"{cf_text}\n\n{build_clean_footer(base_coin)}")
 
     fallback = (
@@ -1281,7 +1311,7 @@ def run_single_cycle(
             base_coin = news_item["coin"]
             coin_snap = fetch_single_coin_snapshot(base_coin)
             post_text = build_news_hot_take_post(news_item, coin_snap)
-            if random.random() < 0.60:
+            if random.random() < 0.70:
                 fname = build_seo_image_filename(base_coin, pillar, "news-card")
                 img_path = generate_news_editorial_card(news_item, coin_snap, str(Path(output_dir) / fname))
                 image_list.append(img_path)
@@ -1375,7 +1405,7 @@ def run_single_cycle(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Binance Square V5.0 High-Reach Narrative Auto-Bot")
+    parser = argparse.ArgumentParser(description="Binance Square V5.1 High-Reach Narrative Auto-Bot")
     parser.add_argument("--once", action="store_true", help="Run a single post cycle.")
     parser.add_argument("--dry-run", action="store_true", help="Preview locally without publishing.")
     parser.add_argument(
