@@ -62,13 +62,12 @@ jobs:
 
       - name: Download Official Binance Square Skill Scripts
         run: |
+          rm -rf square-post temp-hub
           mkdir -p square-post
-          GH_HOST="[https://github.com](https://github.com)"
-          REPO_PATH="binance/binance-skills-hub/archive/refs/heads/main.zip"
-          curl -sL "${GH_HOST}/${REPO_PATH}" -o hub.zip
-          unzip -q hub.zip
-          cp -r binance-skills-hub-main/skills/binance/square-post/* square-post/
-          rm -rf hub.zip binance-skills-hub-main
+          git clone --depth 1 https://github.com/binance/binance-skills-hub.git temp-hub
+          cp -r temp-hub/skills/binance/square-post/* square-post/
+          rm -rf temp-hub
+          ls -la square-post/scripts
 
       - name: Generate & Publish High-Reach Post
         env:
